@@ -186,6 +186,10 @@
     tr{page-break-inside:avoid}
     thead{display:table-header-group}
   }
+
+  .dpick{display:flex;gap:6px;direction:rtl}
+  .dpick select{flex:1;min-width:0;padding:10px 4px;font-size:16px;font-family:inherit;border:1px solid #c9d3dd;border-radius:8px;background:#fff;color:#1d2733}
+  .dpick select:nth-child(1){flex:1.3}
 </style>
 </head>
 <body>
@@ -2455,6 +2459,48 @@ buildAddExtras();toggleBoxes();renderNewKids();
 fillSectors('fSector','كل القواطع');fillSectors('spSector','كل القواطع');
 fillSectors('aSec','اختر القاطع...');fillSectors('rSector','كل القواطع');
 renderPick('fam');renderPick('kid');renderPick('prj');renderPick('prjB');fillSectors('pSec','اختر القاطع...');renderPick('spec');renderPick(repKey());
+</script>
+<script>
+/* منتقي تاريخ بثلاث قوائم (يوم/شهر/سنة) بدل خانة التاريخ الأصلية — يحل مشكلة اللغة العربية بالجوال */
+(function(){
+  var NV=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  var MN=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  function opt(sel,v,t){var o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o)}
+  function enhance(inp){
+    if(inp._dp)return;inp._dp=1;
+    var w=document.createElement('div');w.className='dpick';
+    var d=document.createElement('select'),m=document.createElement('select'),y=document.createElement('select');
+    opt(d,'','يوم');for(var i=1;i<=31;i++)opt(d,i,i);
+    opt(m,'','شهر');for(var i=1;i<=12;i++)opt(m,i,i+' - '+MN[i-1]);
+    opt(y,'','سنة');var cy=new Date().getFullYear()+2;for(var i=cy;i>=1920;i--)opt(y,i,i);
+    w.appendChild(y);w.appendChild(m);w.appendChild(d);
+    inp.style.display='none';inp.parentNode.insertBefore(w,inp.nextSibling);
+    function pad(n){return (n<10?'0':'')+n}
+    function dimOf(){var Y=+y.value,M=+m.value;return M?new Date(Y||2000,M,0).getDate():31}
+    function fillDays(){var cur=d.value,n=dimOf();d.innerHTML='';opt(d,'','يوم');for(var i=1;i<=n;i++)opt(d,i,i);d.value=(cur&&+cur<=n)?cur:''}
+    function vis(){m.style.display=y.value?'':'none';d.style.display=(y.value&&m.value)?'':'none'}
+    function sync(){
+      var v=NV.get.call(inp);
+      if(/^\d{4}-\d{2}-\d{2}/.test(v)){y.value=+v.slice(0,4);m.value=+v.slice(5,7);fillDays();d.value=+v.slice(8,10)}
+      else if(!d.dataset.partial){y.value='';m.value='';fillDays();d.value=''}
+      vis()
+    }
+    Object.defineProperty(inp,'value',{configurable:true,get:function(){return NV.get.call(inp)},set:function(v){NV.set.call(inp,v);d.dataset.partial='';sync()}});
+    function upd(){
+      if(!y.value)m.value='';fillDays();vis();
+      var Y=+y.value,M=+m.value,D=+d.value,old=NV.get.call(inp),nv='';
+      if(Y&&M&&D){nv=Y+'-'+pad(M)+'-'+pad(D)}
+      d.dataset.partial=(!nv&&(Y||M||D))?'1':'';
+      NV.set.call(inp,nv);
+      if(nv!==old){inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}))}
+    }
+    [d,m,y].forEach(function(x){x.addEventListener('change',upd)});
+    sync();
+  }
+  function scan(r){(r||document).querySelectorAll('input[type=date]').forEach(enhance)}
+  function go(){scan();new MutationObserver(function(){scan()}).observe(document.body,{childList:true,subtree:true})}
+  if(document.readyState!=='loading')go();else document.addEventListener('DOMContentLoaded',go);
+})();
 </script>
 </body>
 </html>
