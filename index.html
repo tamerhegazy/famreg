@@ -46,6 +46,12 @@
 </script>
 <style>
   *{box-sizing:border-box}
+  .pxBox{background:#f8fbff;border:1px dashed #a5c4de;border-radius:10px;padding:10px 12px;margin:10px 0;flex-basis:100%;width:100%;text-align:right}
+  .pxT{font-weight:bold;color:#17496a;margin-bottom:6px;font-size:14px}
+  .pxChips{margin-top:6px}
+  .pxChip{display:inline-flex;align-items:center;gap:6px;background:#ffe3e3;border:1px solid #ffa8a8;color:#c92a2a;border-radius:16px;padding:3px 6px 3px 12px;margin:3px;font-size:14px}
+  .pxChip button{border:0;background:transparent;color:#c92a2a;cursor:pointer;font-size:14px}
+  .whoSel{font-size:13px;padding:2px 4px;border-radius:8px;border:1px solid #a5d8ff;max-width:150px}
   input[type=date]{direction:ltr;text-align:right;unicode-bidi:isolate}
   input[type=date]::-webkit-datetime-edit{direction:ltr;unicode-bidi:isolate}
   body{font-family:Tahoma,Arial,sans-serif;background:#f1f4f8;margin:0;color:#1d2733}
@@ -233,11 +239,13 @@
       <div><label id="hNameL">اسم الزوج الكامل</label><input type="text" id="hName"></div>
       <div><label id="hIdL">رقم هوية الزوج</label><input type="text" id="hId" inputmode="numeric" maxlength="9"></div>
       <div><label id="hDobL">تاريخ ميلاد الزوج</label><input type="date" lang="en-GB" id="hDob"></div>
+      <div style="grid-column:1/-1" id="pxH"></div>
     </div>
     <div id="wifeBox" class="grid3">
       <div><label id="wNameL">اسم الزوجة الكامل</label><input type="text" id="wName"></div>
       <div><label id="wIdL">رقم هوية الزوجة</label><input type="text" id="wId" inputmode="numeric" maxlength="9"></div>
       <div><label id="wDobL">تاريخ ميلاد الزوجة</label><input type="date" lang="en-GB" id="wDob"></div>
+      <div style="grid-column:1/-1" id="pxW"></div>
     </div>
     <div class="row">
       <div><label>رقم الجوال</label><input type="text" id="mob1" inputmode="numeric" maxlength="10"></div>
@@ -385,6 +393,18 @@
         <input type="number" id="kA2" min="0" oninput="renderKids()">
       </div>
     </div>
+    <div class="row3" style="margin-top:10px">
+      <div><label>🩺 الحالة الصحية</label>
+        <select id="kSick" onchange="renderKids()"><option value="">الكل</option><option value="0">سليم</option><option value="1">مريض</option></select></div>
+      <div><label>المرض</label>
+        <select id="kDis" onchange="renderKids()"><option value="">كل الأمراض</option></select></div>
+      <div><label>🎓 الوضع التعليمي</label>
+        <select id="kEdu" onchange="renderKids()"><option value="">الكل</option><option value="طالب">طالب (أي مرحلة)</option><option value="مدرسي">طالب مدرسي (ابتدائي - توجيهي)</option><option value="جامعي">طالب جامعي</option><option value="حاصل على مؤهل">حاصل على مؤهل</option><option value="بدون">بدون مؤهل / غير ملتحق</option></select></div>
+      <div><label>المرحلة / الدرجة</label>
+        <select id="kLvl" onchange="renderKids()"><option value="">الكل</option></select></div>
+      <div><label>التخصص</label>
+        <input type="text" id="kMaj" list="majList" placeholder="مثال: طب" oninput="renderKids()"></div>
+    </div>
   </div>
   <div class="card">
     <div class="printOnly"><div class="campHead">مخيم فلسطين تل الهوى</div></div>
@@ -481,6 +501,7 @@
           <div class="acts"><select id="aSec" style="max-width:160px"></select>
           <button class="btn gray small" onclick="aidAddSector()">➕ إضافة كل القاطع</button></div></div>
       </div>
+      <div id="aCond"></div>
       <div id="aRes" style="margin-top:8px"></div>
       <button class="btn gray small" style="margin-top:8px" onclick="rosterToggle('aid')">📋 عرض كشف بكل الأسماء (واختيار من بيستفيد)</button>
       <div id="aRoster" class="hide" style="margin-top:8px"></div>
@@ -542,6 +563,7 @@
           <div class="acts"><select id="pSec" style="max-width:160px"></select>
           <button class="btn gray small" onclick="prjAddSector()">➕ إضافة كل القاطع</button></div></div>
       </div>
+      <div id="pCond"></div>
       <div id="pRes" style="margin-top:8px"></div>
       <button class="btn gray small" style="margin-top:8px" onclick="rosterToggle('prj')">📋 عرض كشف بكل الأسماء (واختيار من بيستفيد)</button>
       <div id="pRoster" class="hide" style="margin-top:8px"></div>
@@ -601,8 +623,17 @@
     <p class="sub">مثال: "عائلات غير مستفيدة من المساعدات النقدية" عشان توزع عليهم المرة الجاية، أو "ماذا استلمت عائلة فلان".</p>
     <label>اختر</label>
     <div class="radios">
-      <label><input type="radio" name="rMode" value="B" checked onchange="repChange()">✅ مستفيد</label>
-      <label><input type="radio" name="rMode" value="N" onchange="repChange()">⭕ غير مستفيد</label>
+      <label><input type="radio" name="rMode" value="B" checked onchange="repModeChange()">✅ مستفيد</label>
+      <label><input type="radio" name="rMode" value="N" onchange="repModeChange()">⭕ غير مستفيد</label>
+      <label><input type="radio" name="rMode" value="G" onchange="repModeChange()">👥 أفراد فئة معينة (مرضى / طلاب ...)</label>
+    </div>
+    <div id="repGBox" class="hide">
+      <p class="sub">حدد الفئة (مثلاً: مرضى السكري، أو طلاب الجامعة) وبيبين لك مين من أفرادها استفاد من المساعدة ومين لا. تقدر تحدد نوع المساعدة من الخانات تحت، أو مساعدة/مشروع معين.</p>
+      <div id="repCond"></div>
+      <div class="row3" style="margin-top:8px">
+        <div><label>مساعدة / مشروع معين</label><select id="rgAid" onchange="renderRep()"><option value="">كل المساعدات (حسب نوع الاستفادة تحت)</option></select></div>
+        <div><label>عرض</label><select id="rgRes" onchange="renderRep()"><option value="">الكل (مع بيان مين استفاد ومين لا)</option><option value="yes">المستفيدون فقط</option><option value="no">غير المستفيدين فقط</option></select></div>
+      </div>
     </div>
     <div class="row3">
       <div>
@@ -693,6 +724,7 @@
   </div>
 </section>
 </main>
+<datalist id="disList"></datalist><datalist id="majList"></datalist><datalist id="majList_uni"></datalist><datalist id="majList_dip"></datalist>
 <footer class="credit">
   <div class="creditCard">
     <span class="creditLine"></span>
@@ -735,6 +767,8 @@ function load(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');retur
 function normFam(d){
   if(!Array.isArray(d.children))d.children=[];
   d.children.forEach(k=>{if(!k.status)k.status='طبيعي';if(!Array.isArray(k.att))k.att=[];if(k.note==null)k.note=''});
+  if(!d.hx||typeof d.hx!=='object')d.hx={};if(!d.wx||typeof d.wx!=='object')d.wx={};
+  d.children.forEach(k=>{if(!k.x||typeof k.x!=='object')k.x={}});
   d.cases=Object.assign({dis:false,disNote:'',pris:false,nurs:false,other:''},d.cases||{});
   if(!Array.isArray(d.att))d.att=[];
   ['hDob','wDob','house','houseNote','tent','sector'].forEach(f=>{if(d[f]==null)d[f]=''});
@@ -1050,6 +1084,7 @@ function kidFields(p){
     <div><label>حالة الابن</label><select id="${p}_status" onchange="kidStatusChange('${p}')"><option value="طبيعي">طبيعي</option><option value="يتيم">يتيم</option></select></div>
   </div>
   <label>ملاحظات عن الابن (اختياري)</label><input type="text" id="${p}_note" maxlength="300">
+  ${pxMk(p,{},()=>{const e=$(p+'_dob');return e?ageOf(e.value):null},true)}
   <div id="${p}_attWrap" class="hide">${attBoxHTML(p+'_',true)}</div>`;
 }
 function kidStatusChange(p){
@@ -1058,7 +1093,7 @@ function kidStatusChange(p){
 }
 function readKid(p){
   clearBad();
-  const k={id:newId(),name:$(p+'_name').value.trim(),nid:$(p+'_nid').value.trim(),dob:$(p+'_dob').value,gender:$(p+'_gender').value,status:$(p+'_status').value||'طبيعي',note:$(p+'_note').value.trim(),att:[]};
+  const k={id:newId(),name:$(p+'_name').value.trim(),nid:$(p+'_nid').value.trim(),dob:$(p+'_dob').value,gender:$(p+'_gender').value,status:$(p+'_status').value||'طبيعي',note:$(p+'_note').value.trim(),att:[],x:pxClone(p)};
   const ne=nameErr(k.name,'اسم الابن');
   if(ne){fail(p+'_name',ne);return{err:1}}
   if(!validId(k.nid)){fail(p+'_nid','رقم هوية الابن لازم يكون 9 أرقام فقط');return{err:1}}
@@ -1071,7 +1106,7 @@ function readKid(p){
 }
 function clearKid(p){
   ['name','nid','dob','gender','note'].forEach(f=>$(p+'_'+f).value='');
-  $(p+'_status').value='طبيعي';kidAtt[p]=[];kidStatusChange(p);
+  $(p+'_status').value='طبيعي';kidAtt[p]=[];kidStatusChange(p);pxReset(p);
 }
 function kidBadge(k){return k.status==='يتيم'?'<span class="orph">يتيم</span>':'<span class="normal">طبيعي</span>'}
 function kidsListHTML(list,removeFn,toggleFn,edit){
@@ -1082,8 +1117,10 @@ function kidsListHTML(list,removeFn,toggleFn,edit){
     ${toggleFn?` <button class="btn gray small" onclick="${toggleFn}(${i})">تغيير الحالة</button>`:''}
     ${removeFn?` <button class="btn red small" onclick="${removeFn}(${i})">حذف</button>`:''}</span>
     ${edit?`<div style="flex-basis:100%"><input type="text" maxlength="300" placeholder="ملاحظات عن الابن (اختياري)" value="${esc(k.note||'')}" oninput="ui.draft.children[${i}].note=this.value"></div>
+      ${pxMk('ekd'+i,k.x||(k.x={}),()=>ageOf(k.dob),true)}
       ${k.status==='يتيم'?`<div style="flex-basis:100%">${attBoxHTML('ekd'+i+'_',true)}</div>`:''}`
     :`${k.note?`<div style="flex-basis:100%;white-space:pre-line;font-size:13px;color:#495057">📝 ${esc(k.note)}</div>`:''}
+      ${pxSumHTML(k.x,k.dob,true)}
       ${(k.att&&k.att.length)?`<div style="flex-basis:100%" class="attList">${attItemsHTML(k.att,'v',true)}</div>`:''}`}
   </div>`).join('');
 }
@@ -1244,7 +1281,8 @@ async function addFamily(){
     count:parseInt($('count').value),
     mob1:cm.mob1,mob2:cm.mob2,notes:cm.notes,
     house:cm.house,houseNote:cm.houseNote,tent:cm.tent,sector:cm.sector,cases:cm.cases,
-    children:newKids.slice(),att:newAtt.map(a=>({...a}))
+    children:newKids.slice(),att:newAtt.map(a=>({...a})),
+    hx:hH?JSON.parse(JSON.stringify(addHx)):{},wx:hW?JSON.parse(JSON.stringify(addWx)):{}
   };
   if(validateFamily(f,null,''))return;
   if(!await persistAtt(allAttOf(f)))return;
@@ -1258,15 +1296,15 @@ function resetAddForm(){
   document.querySelector('input[name=base][value=m]').checked=true;
   document.querySelectorAll('input[name=gender]').forEach(r=>r.checked=false);
   newKids=[];newAtt.length=0;
-  renderNewKids();closeKidForm();buildAddExtras();toggleBoxes();
+  renderNewKids();closeKidForm();buildAddExtras();toggleBoxes();pxMountAdd();
 }
 
 /* ================= عرض عائلة (بحث بالهوية) ================= */
 let ui={fam:null,panel:null,draft:null};
 function addNote(r,text){r.notes=(r.notes?r.notes+'\n':'')+'['+today()+'] '+text}
-function aidLine(a){
+function aidLine(a,fam){
   const det=(a.kind==='cash'?'نقدية: ':'عينية: ')+aidDetails(a);
-  return '📅 '+esc(a.date)+(a.name?' — مشروع: '+esc(a.name):'')+' — '+esc(det)+' — المؤسسة: '+esc(a.org)+(a.place?' — مكان الاستلام: '+esc(a.place):'')+(a.note?' — ملاحظات: '+esc(a.note):'');
+  return '📅 '+esc(a.date)+(a.name?' — مشروع: '+esc(a.name):'')+' — '+esc(det)+' — المؤسسة: '+esc(a.org)+(a.place?' — مكان الاستلام: '+esc(a.place):'')+(a.note?' — ملاحظات: '+esc(a.note):'')+(fam&&a.who&&a.who[fam.id]?' — <b>المستفيد: '+esc(personName(fam,a.who[fam.id]))+'</b>':'');
 }
 function renderById(){
   const q=$('idQ').value.trim(),box=$('idResults');
@@ -1285,14 +1323,14 @@ function cardHTML(r){
   return `<div class="fam">
     <div class="info">
       ${tag(r.status)} ${cl.map(c=>`<span class="cs ${c.c}">${esc(c.t)}</span>`).join('')}
-      ${r.hName?`<div>${m?'الزوج':'رب الأسرة'}: <b>${esc(r.hName)}</b> (${esc(r.hId)}) — العمر: <b>${fmtAge(ageOf(r.hDob))}</b> — ميلاد: ${esc(r.hDob)||'-'}</div>`:''}
-      ${r.wName?`<div>${m?'الزوجة':'رب الأسرة'}: <b>${esc(r.wName)}</b> (${esc(r.wId)}) — العمر: <b>${fmtAge(ageOf(r.wDob))}</b> — ميلاد: ${esc(r.wDob)||'-'}</div>`:''}
+      ${r.hName?`<div>${m?'الزوج':'رب الأسرة'}: <b>${esc(r.hName)}</b> (${esc(r.hId)}) — العمر: <b>${fmtAge(ageOf(r.hDob))}</b> — ميلاد: ${esc(r.hDob)||'-'}</div>${pxSumHTML(r.hx,r.hDob,true)}`:''}
+      ${r.wName?`<div>${m?'الزوجة':'رب الأسرة'}: <b>${esc(r.wName)}</b> (${esc(r.wId)}) — العمر: <b>${fmtAge(ageOf(r.wDob))}</b> — ميلاد: ${esc(r.wDob)||'-'}</div>${pxSumHTML(r.wx,r.wDob,true)}`:''}
       <div>السكن: <b>${esc(r.house)||'-'}</b>${r.house==='خيمة'?` — رقم الخيمة: <b>${esc(r.tent)}</b>`:''}${hasSector(r)?` — القاطع: <b>${esc(r.sector)}</b>`:''}${r.house==='خارجي'&&r.houseNote?` — ملاحظة السكن: <b>${esc(r.houseNote)}</b>`:''}</div>
       <div>عدد الأفراد: <b>${r.count}</b> &nbsp;|&nbsp; الجوال: ${esc(r.mob1)} - ${esc(r.mob2)}</div>
       ${r.cases.dis&&r.cases.disNote?`<div>تفاصيل الإعاقة: ${esc(r.cases.disNote)}</div>`:''}
       ${r.children.length?`<div>الأبناء:</div>${kidsListHTML(r.children,null)}`:''}
       ${r.att.length?`<div>المرفقات:</div><div class="attList">${attItemsHTML(r.att,'v',true)}</div>`:''}
-      ${myAids.length?`<div style="margin-top:6px">المساعدات المستلمة (${myAids.length}):</div>${myAids.map(a=>`<div style="font-size:13px">${aidLine(a)}</div>`).join('')}`:''}
+      ${myAids.length?`<div style="margin-top:6px">المساعدات المستلمة (${myAids.length}):</div>${myAids.map(a=>`<div style="font-size:13px">${aidLine(a,r)}</div>`).join('')}`:''}
       ${r.notes?`<div style="white-space:pre-line;font-size:13px;color:#495057;margin-top:6px">ملاحظات: ${esc(r.notes)}</div>`:''}
     </div>
     <div class="acts">
@@ -1325,7 +1363,7 @@ function panelHTML(r,kind){
   if(kind==='note')return `<div class="box"><h3>📝 إضافة ملاحظة</h3>
     <p class="sub">بتنضاف الملاحظة مع التاريخ ولا بتمسح اللي قبلها.</p>
     <label>الملاحظة على</label>
-    <select id="qn_t_${r.id}"><option value="f">العائلة كاملة</option>${r.children.map((k,i)=>`<option value="${i}">الابن: ${esc(k.name)}${k.status==='يتيم'?' (يتيم)':''}</option>`).join('')}</select>
+    <select id="qn_t_${r.id}"><option value="f">العائلة كاملة</option>${r.hName?`<option value="h">${hasWife(r.status)&&r.status==='متزوج'?'الزوج':'رب الأسرة'}: ${esc(r.hName)}</option>`:''}${r.wName?`<option value="w">${r.status==='متزوج'?'الزوجة':'رب الأسرة'}: ${esc(r.wName)}</option>`:''}${r.children.map((k,i)=>`<option value="${i}">الابن: ${esc(k.name)}${k.status==='يتيم'?' (يتيم)':''}</option>`).join('')}</select>
     <label>الملاحظة</label><textarea id="qn_${r.id}" rows="3" maxlength="500"></textarea>
     <button class="btn green" onclick="addQuickNote(${r.id})">💾 حفظ الملاحظة</button></div>`;
   if(kind==='spouse')return `<div class="box"><h3>👥 حذف أحد الزوجين</h3>
@@ -1357,7 +1395,8 @@ function editPanel(){
   const person=(pre,nm,id,dob,who)=>`<div class="grid3">
       <div><label>اسم ${who} الكامل</label><input type="text" id="e_${pre}Name" value="${esc(nm)}"></div>
       <div><label>رقم هوية ${who}</label><input type="text" id="e_${pre}Id" inputmode="numeric" maxlength="9" value="${esc(id)}"></div>
-      <div><label>تاريخ ميلاد ${who}</label><input type="date" lang="en-GB" id="e_${pre}Dob" max="${today()}" value="${esc(dob)}"></div></div>`;
+      <div><label>تاريخ ميلاد ${who}</label><input type="date" lang="en-GB" id="e_${pre}Dob" max="${today()}" value="${esc(dob)}"></div></div>
+      ${pxMk('e_'+pre,d[pre+'x']||(d[pre+'x']={}),()=>{const e=$('e_'+pre+'Dob');return ageOf(e?e.value:d[pre+'Dob'])},true)}`;
   return `<div class="box"><h3>✏️ تعديل بيانات الأسرة</h3>
     <label>الحالة الاجتماعية</label>
     <div class="radios">${rb('m','متزوج/ة')}${rb('d','مطلق/ة')}${rb('w','أرمل/ة')}${rb('a','مهجورة')}</div>
@@ -1425,8 +1464,8 @@ function toggleEditKid(i){
 async function saveEdit(){
   syncDraft();
   const d=ui.draft,old=data.find(x=>x.id===d.id);
-  if(!hasHusband(d.status)){d.hName='';d.hId='';d.hDob=''}
-  if(!hasWife(d.status)){d.wName='';d.wId='';d.wDob=''}
+  if(!hasHusband(d.status)){d.hName='';d.hId='';d.hDob='';d.hx={}}
+  if(!hasWife(d.status)){d.wName='';d.wId='';d.wDob='';d.wx={}}
   if(validateFamily(d,d.id,'e_'))return;
   if(!await persistAtt(allAttOf(d)))return;
   if(old.status!==d.status)addNote(d,'تغيير الحالة من '+old.status+' إلى '+d.status);
@@ -1449,6 +1488,7 @@ function addQuickNote(id){
   const t=$('qn_'+id).value.trim(),to=$('qn_t_'+id).value;
   if(t.length<2)return fail('qn_'+id,'اكتب الملاحظة أولاً');
   if(to==='f')addNote(r,t);
+  else if(to==='h'||to==='w'){const x=r[to+'x']||(r[to+'x']={});x.note=(x.note?x.note+'\n':'')+'['+today()+'] '+t}
   else{const k=r.children[+to];if(!k)return;k.note=(k.note?k.note+'\n':'')+'['+today()+'] '+t}
   save();ui.panel=null;ui.fam=null;
   $('idQ').value=headId(r);renderById();
@@ -1485,7 +1525,7 @@ function removeSpouse(id){
   const newStatus=remainWife?mkStatus(kind==='widow'?'w':kind==='div'?'d':'a','أنثى'):mkStatus(kind==='widow'?'w':kind==='div'?'d':'a','ذكر');
   if(!confirm('هل أنت متأكد من حذف '+(who==='h'?'الزوج':'الزوجة')+': '+removed+' ؟\nالسبب: '+rsTxt+'\nحالة الأسرة بعد الحذف: '+newStatus))return;
   addNote(r,'حذف '+(who==='h'?'الزوج':'الزوجة')+' ('+removed+') - السبب: '+rsTxt+' - عدد الأفراد من '+r.count+' إلى '+nc+' (تلقائي)'+(n?' - '+n:''));
-  if(who==='h'){r.hName='';r.hId='';r.hDob=''}else{r.wName='';r.wId='';r.wDob=''}
+  if(who==='h'){r.hName='';r.hId='';r.hDob='';r.hx={}}else{r.wName='';r.wId='';r.wDob='';r.wx={}}
   r.status=newStatus;r.count=nc;save();
   ui.panel=null;ui.fam=null;
   $('idQ').value=headId(r);
@@ -1540,7 +1580,11 @@ const KIDCOLS=[
  {k:'age',l:'العمر',v:r=>ageOf(r.k.dob),c:'num'},
  {k:'gen',l:'الجنس',v:r=>r.k.gender,h:r=>gBadge(r.k.gender)},
  {k:'kst',l:'حالة الابن',v:r=>r.role==='الأب'||r.role==='الأم'?'-':r.k.status,h:r=>r.role==='الأب'||r.role==='الأم'?'-':kidBadge(r.k),x:r=>r.k.status==='يتيم'?({fill:'E03131',color:'FFFFFF'}):({fill:'D3F9D8'})},
- {k:'knote',l:'ملاحظات الابن',v:r=>r.k.note||'-',c:'wide'},
+ {k:'knote',l:'ملاحظات',v:r=>[r.k.note,r.k.x&&r.k.x.note].filter(Boolean).join(' | ')||'-',c:'wide'},
+ {k:'sick',l:'الحالة الصحية',v:r=>(r.k.x&&r.k.x.sick)?'مريض':'سليم',x:r=>(r.k.x&&r.k.x.sick)?({fill:'FFE3E3'}):({})},
+ {k:'dis',l:'المرض',v:r=>(r.k.x&&r.k.x.sick&&(r.k.x.dis||[]).join('، '))||'-',c:'wide'},
+ {k:'edu',l:'المؤهل العلمي',v:r=>eduText(r.k.x,ageOf(r.k.dob))||'-',c:'nw'},
+ {k:'maj',l:'التخصص',v:r=>(r.k.x&&r.k.x.eu&&r.k.x.eu.maj)||'-',c:'nw'},
  {k:'katt',l:'المرفقات',v:r=>(r.k.att&&r.k.att.length)?r.k.att.length+' مرفق':'-'},
  {k:'head',l:'رب الأسرة',v:r=>famName(r.f),c:'nm'},
  {k:'headId',l:'هوية رب الأسرة',v:r=>headId(r.f),c:'nw'},
@@ -1598,6 +1642,30 @@ const REPNCOLS=[
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r)},
  {k:'sec',l:'القاطع',v:r=>secOf(r)}
 ];
+const colOffDef={repG:['m1','tent','sec','hid']};
+function personOf(f,key){
+  if(key==='h')return{name:f.hName,nid:f.hId,dob:f.hDob,gender:'ذكر',role:f.status==='متزوج'?'الأب':'رب الأسرة',x:f.hx};
+  if(key==='w')return{name:f.wName,nid:f.wId,dob:f.wDob,gender:'أنثى',role:f.status==='متزوج'?'الأم':'رب الأسرة',x:f.wx};
+  const k=f.children.find(z=>String(z.id)===String(key))||{};
+  return{name:k.name,nid:k.nid,dob:k.dob,gender:k.gender,role:k.gender==='ذكر'?'ابن':'ابنة',x:k.x};
+}
+const REPGCOLS=[
+ {k:'n',l:'#',v:(r,i)=>i+1,c:'num'},
+ {k:'name',l:'الاسم',v:r=>r.p.name,c:'nm'},
+ {k:'role',l:'الصفة',v:r=>r.p.role,c:'nw'},
+ {k:'nid',l:'رقم الهوية',v:r=>r.p.nid,c:'nw'},
+ {k:'age',l:'العمر',v:r=>fmtAge(ageOf(r.p.dob)),c:'num'},
+ {k:'sick',l:'الحالة الصحية',v:r=>(r.p.x&&r.p.x.sick)?('مريض'+((r.p.x.dis||[]).length?': '+r.p.x.dis.join('، '):'')):'سليم',c:'wide'},
+ {k:'edu',l:'المؤهل العلمي',v:r=>eduText(r.p.x,ageOf(r.p.dob))||'-',c:'nw'},
+ {k:'maj',l:'التخصص',v:r=>(r.p.x&&r.p.x.eu&&r.p.x.eu.maj)||'-',c:'nw'},
+ {k:'ben',l:'هل استفاد؟',v:r=>r.got.length?'استفاد':'لم يستفد',h:r=>r.got.length?'<span class="normal">✔ استفاد</span>':'<span class="orph">✖ لم يستفد</span>',x:r=>r.got.length?({fill:'D3F9D8'}):({fill:'FFC9C9'})},
+ {k:'got',l:'ماذا استلم',v:r=>r.got.map(a=>(a.name?a.name+': ':'')+aidDetails(a)+' ('+a.date+')').join('\n')||'-',c:'wide'},
+ {k:'head',l:'رب الأسرة',v:r=>famName(r.f),c:'nm'},
+ {k:'hid',l:'هوية رب الأسرة',v:r=>headId(r.f),c:'nw'},
+ {k:'m1',l:'الجوال',v:r=>r.f.mob1,c:'nw'},
+ {k:'sec',l:'القاطع',v:r=>secOf(r.f)},
+ {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r.f)}
+];
 const famsAlive=a=>(a.fams||[]).filter(id=>data.some(f=>f.id===id));
 const PRJCOLS=[
  {k:'n',l:'#',v:(r,i)=>i+1,c:'num'},
@@ -1616,6 +1684,7 @@ const PRJBCOLS=[
  {k:'id',l:'رقم الهوية',v:r=>headId(r),c:'nw'},
  {k:'st',l:'الحالة',v:r=>r.status,h:r=>tag(r.status),x:r=>({fill:ST_FILL[r.status]})},
  {k:'cnt',l:'عدد الأفراد',v:r=>r.count,c:'num'},
+ {k:'who',l:'المستفيد',v:r=>{const a=aids.find(x=>x.id===prjViewId);return a&&a.who&&a.who[r.id]?personName(r,a.who[r.id]):'الأسرة كاملة'},c:'nm'},
  {k:'m1',l:'الجوال',v:r=>r.mob1,c:'nw'},
  {k:'house',l:'نوع السكن',v:r=>r.house||'-',c:'nw'},
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r)},
@@ -1630,11 +1699,13 @@ const TABLES={
  specE:{cols:SPECECOLS,box:'pick_spec',el:'specTable',file:'كشف_كبار_السن',act:r=>`<button class="btn orange small" onclick="manage(${r.f.id})">⚙️ تعديل / حذف</button>`,rows:()=>elderRows(),render:()=>renderSpec()},
  spec:{cols:SPECCOLS,box:'pick_spec',el:'specTable',file:'كشف_الحالات_الخاصة',manage:true,rows:()=>specRows(),render:()=>renderSpec()},
  repB:{cols:REPBCOLS,box:'pick_rep',el:'repTable',file:'تقرير_المستفيدين',rows:()=>repRowsB(),render:()=>renderRep()},
+ repG:{cols:REPGCOLS,box:'pick_rep',el:'repTable',file:'تقرير_فئة_أفراد',rows:()=>repRowsG(),render:()=>renderRep()},
  repN:{cols:REPNCOLS,box:'pick_rep',el:'repTable',file:'تقرير_غير_المستفيدين',manage:true,rows:()=>repRowsN(),render:()=>renderRep()}
 };
 const tTitle={};   /* نص عنوان كل كشف (للـ PDF وExcel) */
 
 let colOff=load(COLKEY,{});if(!colOff||typeof colOff!=='object'||Array.isArray(colOff))colOff={};
+if(colOff.repG===undefined)colOff.repG=colOffDef.repG.slice();
 const colOn=(t,k)=>!(colOff[t]||[]).includes(k);
 const activeCols=t=>TABLES[t].cols.filter(c=>colOn(t,c.k));
 function renderPick(t){
@@ -1784,7 +1855,33 @@ function kidMatches(k){
   const g=$('kGender').value,s=$('kStatus').value;
   if(g&&k.gender!==g)return false;
   if(s&&k.status!==s)return false;
+  if(!xMatches(k))return false;
   return cmp($('kOp').value,ageOf(k.dob),parseInt($('kA1').value),parseInt($('kA2').value));
+}
+function xMatches(k){
+  return xMatchWith(k,{sk:$('kSick').value,ds:$('kDis').value,ed:$('kEdu').value,lv:$('kLvl').value,mj:$('kMaj').value});
+}
+function xMatchWith(k,c){
+  const sk=c.sk,ds=c.ds,ed=c.ed,lv=c.lv,mj=normAr(c.mj||'');
+  if(!sk&&!ds&&!ed&&!lv&&!mj)return true;
+  const x=k.x||{},e=x.eu||{};
+  if(sk==='1'&&!x.sick)return false;
+  if(sk==='0'&&x.sick)return false;
+  if(ds&&!(x.sick&&(x.dis||[]).some(d=>normAr(d)===normAr(ds))))return false;
+  const age=ageOf(k.dob);
+  if(ed||lv||mj){if(age==null||age<6)return false}
+  if(ed==='بدون'){if(!(e.st==='بدون مؤهل'||e.st==='غير ملتحق'))return false}
+  else if(ed==='مدرسي'){if(!(e.st==='طالب'&&e.stage!=='جامعي'&&e.stage!=='تدريب مهني'))return false}
+  else if(ed==='جامعي'){if(!(e.st==='طالب'&&e.stage==='جامعي'))return false}
+  else if(ed&&e.st!==ed)return false;
+  if(lv&&e.stage!==lv&&e.deg!==lv)return false;
+  if(mj&&!normAr(e.maj||'').includes(mj))return false;
+  return true;
+}
+function kFillLists(){
+  const fill=(id,first,items)=>{const el=$(id),cur=el.value;el.innerHTML='<option value="">'+first+'</option>'+items.map(i=>`<option value="${esc(i)}">${esc(i)}</option>`).join('');if(items.includes(cur))el.value=cur};
+  fill('kDis','كل الأمراض',allDis());
+  fill('kLvl','الكل',uniqAr(STAGE_K.concat(STAGE_A,DEG_GRAD)));
 }
 function matchedKids(){
   const out=[];
@@ -1794,7 +1891,7 @@ function matchedKids(){
     if(incK)f.children.forEach(k=>{if(kidMatches(k))out.push({k,f,role:k.gender==='ذكر'?'ابن':'ابنة'})});
     if(st)return;
     const par=(role,gender,name,nid,dob)=>{
-      const k={name,nid,dob,gender,status:'',note:'',att:[]};
+      const k={name,nid,dob,gender,status:'',note:'',att:[],x:role==='الأب'?f.hx:f.wx};
       if(dob&&kidMatches(k))out.push({k,f,role});
     };
     if(hasHusband(f.status)&&incF)par('الأب','ذكر',f.hName,f.hId,f.hDob);
@@ -1803,6 +1900,7 @@ function matchedKids(){
   return out.sort(byName(x=>x.k.name));
 }
 function renderKids(){
+  kFillLists();
   const rows=matchedKids();
   const m=rows.filter(x=>x.k.gender==='ذكر').length,fm=rows.length-m;
   const or=rows.filter(x=>x.role!=='الأب'&&x.role!=='الأم'&&x.k.status==='يتيم').length;
@@ -1898,6 +1996,7 @@ function rosterAll(t,on){
 /* ================= المساعدات ================= */
 let aidSel=[];
 function aidInit(){
+  condRender('aid');
   fillSectors('aSec','اختر القاطع...');
   if(!$('aDate').value)$('aDate').value=today();
   aidKindChange();aidSearch();aidRenderSel();aidLog();
@@ -1933,7 +2032,7 @@ function aidAddCat(){
 function famMatchQ(f,q){
   const nq=normAr(q),dq=q.replace(/\D/g,'');
   if(dq&&dq.length>=3&&[f.hId,f.wId,...f.children.map(k=>k.nid)].some(i=>i&&i.includes(dq)))return true;
-  return nq&&[f.hName,f.wName].some(n=>n&&normAr(n).includes(nq));
+  return nq&&[f.hName,f.wName,...f.children.map(k=>k.name)].some(n=>n&&normAr(n).includes(nq));
 }
 function famBrief(f){return esc(famName(f))+' • '+esc(headId(f))+(f.house==='خيمة'?' • خيمة '+esc(f.tent)+' / '+esc(f.sector):(f.house==='مبنى'?' • مبنى'+(f.sector?' / '+esc(f.sector):''):''))}
 function aidSearch(){
@@ -1946,7 +2045,7 @@ function aidSearch(){
 }
 function aidToggle(id){
   const i=aidSel.indexOf(id);
-  if(i>=0)aidSel.splice(i,1);else aidSel.push(id);
+  if(i>=0){aidSel.splice(i,1);delete benWho.aid[id]}else aidSel.push(id);
   aidSearch();aidRenderSel();rosterRender('aid');
 }
 function aidAddSector(){
@@ -1958,11 +2057,11 @@ function aidAddSector(){
   aidSearch();aidRenderSel();rosterRender('aid');
   notify('تمت إضافة '+n+' عائلة من القاطع '+s,true);
 }
-function aidClearSel(){aidSel=[];aidSearch();aidRenderSel();rosterRender('aid')}
+function aidClearSel(){aidSel=[];benWho.aid={};aidSearch();aidRenderSel();rosterRender('aid')}
 function aidRenderSel(){
   $('aCnt').textContent=aidSel.length;
   const fs=aidSel.map(id=>data.find(f=>f.id===id)).filter(Boolean).sort(byName(famName));
-  $('aSel').innerHTML=fs.length?fs.map(f=>`<span class="chip">${esc(famName(f))}<button title="إزالة" onclick="aidToggle(${f.id})">✕</button></span>`).join(''):'<p class="sub">لسا ما اخترت عائلات.</p>';
+  $('aSel').innerHTML=fs.length?fs.map(f=>`<span class="chip">${esc(famName(f))}${whoSelHTML('aid',f)}<button title="إزالة" onclick="aidToggle(${f.id})">✕</button></span>`).join(''):'<p class="sub">لسا ما اخترت عائلات.</p>';
 }
 function aidSave(){
   clearBad();
@@ -1977,10 +2076,10 @@ function aidSave(){
   if(date>today())return fail('aDate','تاريخ الاستلام لا يمكن أن يكون في المستقبل');
   const fams=aidSel.filter(id=>data.some(f=>f.id===id));
   if(!fams.length)return fail('aQ','اختر عائلة واحدة على الأقل من نتائج البحث');
-  aids.push({id:newId(),kind,cats:kind==='inkind'?cats:[],value:val?parseFloat(val):0,cur:$('aCur').value,org,place,date,fams,note:$('aNote').value.trim()});
+  aids.push({id:newId(),kind,cats:kind==='inkind'?cats:[],value:val?parseFloat(val):0,cur:$('aCur').value,org,place,date,fams,note:$('aNote').value.trim(),...whoOut('aid',fams)});
   if(!saveAids()){aids.pop();return}
   const n=fams.length;
-  aidSel=[];aidCatSel=new Set();
+  aidSel=[];aidCatSel=new Set();benWho.aid={};
   ['aVal','aOrg','aPlace','aQ','aNote'].forEach(i=>$(i).value='');$('aDate').value=today();
   aidKindChange();aidSearch();aidRenderSel();aidLog();rosterRender('aid');
   notify('تم تسجيل المساعدة لعدد '+n+' عائلة',true);
@@ -1994,7 +2093,7 @@ function aidLog(){
       const fs=a.fams.map(id=>data.find(f=>f.id===id)).filter(Boolean).sort(byName(famName));
       return `<tr><td class="num">${i+1}</td><td class="nw">${esc(a.date)}</td><td>${esc(a.name)||'-'}</td><td>${a.kind==='cash'?'💵 نقدية':'📦 عينية'}</td><td class="wide">${esc(aidDetails(a))}</td><td>${esc(a.org)}</td><td>${esc(a.place)||'-'}</td>
       <td class="wide"><div style="white-space:pre-line;text-align:right">${esc(a.note)||'-'}</div>${noteQuick(a.id,'ana_')}</td>
-      <td class="wide"><details><summary>${fs.length} عائلة</summary>${fs.map(f=>`<div class="kline">${esc(famName(f))}</div>`).join('')}</details></td>
+      <td class="wide"><details><summary>${fs.length} عائلة</summary>${fs.map(f=>`<div class="kline">${esc(famName(f))}${a.who&&a.who[f.id]?' ← '+esc(personName(f,a.who[f.id])):''}</div>`).join('')}</details></td>
       <td><button class="btn red small" onclick="aidDelete(${a.id})">🗑️ حذف</button></td></tr>`}).join('')+'</tbody></table></div>';
 }
 function noteQuick(id,pre){
@@ -2018,6 +2117,7 @@ function aidDelete(id){
 /* ================= المشاريع ================= */
 let prjSel=[],prjCatSel=new Set(),prjViewId=null;
 function prjInit(){
+  condRender('prj');
   fillSectors('pSec','اختر القاطع...');
   if(!$('pDate').value)$('pDate').value=today();
   prjKindChange();prjSearch();prjRenderSel();renderPick('prj');renderPick('prjB');renderPrj();
@@ -2050,7 +2150,7 @@ function prjSearch(){
 }
 function prjToggle(id){
   const i=prjSel.indexOf(id);
-  if(i>=0)prjSel.splice(i,1);else prjSel.push(id);
+  if(i>=0){prjSel.splice(i,1);delete benWho.prj[id]}else prjSel.push(id);
   prjSearch();prjRenderSel();rosterRender('prj');
 }
 function prjAddSector(){
@@ -2062,11 +2162,11 @@ function prjAddSector(){
   prjSearch();prjRenderSel();rosterRender('prj');
   notify('تمت إضافة '+n+' عائلة من القاطع '+sc,true);
 }
-function prjClearSel(){prjSel=[];prjSearch();prjRenderSel();rosterRender('prj')}
+function prjClearSel(){prjSel=[];benWho.prj={};prjSearch();prjRenderSel();rosterRender('prj')}
 function prjRenderSel(){
   $('pCnt').textContent=prjSel.length;
   const fs=prjSel.map(id=>data.find(f=>f.id===id)).filter(Boolean).sort(byName(famName));
-  $('pSel').innerHTML=fs.length?fs.map(f=>`<span class="chip">${esc(famName(f))}<button title="إزالة" onclick="prjToggle(${f.id})">✕</button></span>`).join(''):'<p class="sub">لسا ما اخترت عائلات.</p>';
+  $('pSel').innerHTML=fs.length?fs.map(f=>`<span class="chip">${esc(famName(f))}${whoSelHTML('prj',f)}<button title="إزالة" onclick="prjToggle(${f.id})">✕</button></span>`).join(''):'<p class="sub">لسا ما اخترت عائلات.</p>';
 }
 function prjSave(){
   clearBad();
@@ -2091,10 +2191,10 @@ function prjSave(){
   if(aids.some(a=>a.name&&normAr(a.name)===normAr(name)&&a.date===date))return fail('pName','في مشروع بنفس الاسم والتاريخ مسجل من قبل');
   let perV=val?parseFloat(val):0;
   if(kind==='cash'&&!perV&&parseFloat(tot)>0)perV=Math.round(parseFloat(tot)/fams.length*100)/100;
-  aids.push({id:newId(),name,kind,cats:kind==='inkind'?cats:[],value:perV,total:kind==='cash'&&tot?parseFloat(tot):0,parcels:kind==='inkind'&&par?parseInt(par):0,parPer:kind==='inkind'&&parPer?parseInt(parPer):0,cur:$('pCur').value,org,place,date,fams,note:$('pNote').value.trim()});
+  aids.push({id:newId(),name,kind,cats:kind==='inkind'?cats:[],value:perV,total:kind==='cash'&&tot?parseFloat(tot):0,parcels:kind==='inkind'&&par?parseInt(par):0,parPer:kind==='inkind'&&parPer?parseInt(parPer):0,cur:$('pCur').value,org,place,date,fams,note:$('pNote').value.trim(),...whoOut('prj',fams)});
   if(!saveAids()){aids.pop();return}
   const n=fams.length;
-  prjSel=[];prjCatSel=new Set();
+  prjSel=[];prjCatSel=new Set();benWho.prj={};
   ['pName','pOrg','pVal','pTot','pPar','pParPer','pPlace','pQ','pNote'].forEach(i=>$(i).value='');$('pDate').value=today();
   prjKindChange();prjSearch();prjRenderSel();renderPrj();rosterRender('prj');
   notify('تم حفظ المشروع "'+name+'" ('+n+' عائلة)',true);
@@ -2141,7 +2241,13 @@ function renderPrjB(){
 }
 
 /* ================= التقارير ================= */
-const repKey=()=>radVal('rMode')==='N'?'repN':'repB';
+const repKey=()=>radVal('rMode')==='N'?'repN':radVal('rMode')==='G'?'repG':'repB';
+function repModeChange(){
+  const g=radVal('rMode')==='G';
+  $('repGBox').classList.toggle('hide',!g);
+  if(g)condRender('rep');
+  repChange();
+}
 function repFillCats(sel){
   const s=$('rCat');
   s.innerHTML='<option value="">الكل</option>'+catsForReport().map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')+'<option value="__add">➕ إضافة...</option>';
@@ -2196,6 +2302,39 @@ function repRowsN(){
   const ok=aids.filter(aidMatches);
   return data.filter(f=>repFilterFam(f)&&!ok.some(a=>a.fams.includes(f.id))).sort(byName(famName));
 }
+function rgFillAids(){
+  const s=$('rgAid');if(!s)return;
+  const list=[...aids].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const sig=list.map(a=>a.id).join(',');
+  if(s.dataset.sig===sig)return;
+  const cur=s.value;s.dataset.sig=sig;
+  s.innerHTML='<option value="">كل المساعدات (حسب نوع الاستفادة تحت)</option>'+list.map(a=>`<option value="${a.id}">${a.name?'مشروع: '+esc(a.name):'مساعدة: '+esc(a.org)} — ${esc(a.date)}</option>`).join('');
+  s.value=list.some(a=>String(a.id)===cur)?cur:'';
+}
+function repRowsG(all){
+  const m=condMatch('rep');if(m==null)return [];
+  const sel=$('rgAid').value,res=all?'':$('rgRes').value;
+  const use=aids.filter(a=>aidMatches(a)&&(!sel||String(a.id)===sel));
+  const out=[];
+  m.forEach(({f,key})=>{
+    if(!repFilterFam(f))return;
+    const got=use.filter(a=>(a.fams||[]).includes(f.id)&&(!a.who||!whoArr(a.who[f.id]).length||whoArr(a.who[f.id]).map(String).includes(String(key))));
+    if(res==='yes'&&!got.length)return;
+    if(res==='no'&&got.length)return;
+    out.push({f,key,p:personOf(f,key),got});
+  });
+  return out.sort((x,y)=>String(x.p.name||'').localeCompare(String(y.p.name||''),'ar'));
+}
+function condDesc(){
+  const c=condVals('rep'),parts=[];
+  if(c.sick)parts.push(c.sick==='1'?'مرضى':'مرضى '+c.sick);
+  const E={'طالب':'طلاب','مدرسي':'طلاب مدارس','جامعي':'طلاب جامعات','حاصل على مؤهل':'حاصلون على مؤهل','بدون':'بدون مؤهل / غير ملتحقين'};
+  if(c.edu)parts.push(E[c.edu]||c.edu);
+  if(c.lvl)parts.push(c.lvl);
+  if((c.maj||'').trim())parts.push('تخصص '+c.maj.trim());
+  if(c.a1!==''||c.a2!=='')parts.push('العمر '+(c.a1!==''?'من '+c.a1:'')+(c.a2!==''?' إلى '+c.a2:''));
+  return parts.join(' - ');
+}
 function repDesc(){
   const k=$('rKind').value,c=$('rCat').value;
   if(!k)return 'أي مساعدة';
@@ -2204,9 +2343,22 @@ function repDesc(){
 }
 function renderRep(){
   const mode=radVal('rMode'),key=repKey();
+  if(mode==='G')rgFillAids();
   const rows=TABLES[key].rows();
   const sec=$('rSector').value;
   let t;
+  if(mode==='G'){
+    const cd=condDesc();
+    if(!cd){tTitle[key]='تقرير فئة أفراد';$('repTitle').textContent='اختر شرط الفئة (صحة أو تعليم أو عمر) لتظهر النتائج';$('pHeadRep').textContent='';$('repTable').innerHTML='<p class="empty">اختر شرط الفئة من الأعلى.</p>';return}
+    const all=repRowsG(true),yes=all.filter(r=>r.got.length).length;
+    const ai=$('rgAid').value,a=ai?aids.find(x=>String(x.id)===ai):null;
+    t='أفراد فئة ('+cd+') — '+(a?(a.name?'مشروع '+a.name:'مساعدة '+a.org)+' '+a.date:repDesc());
+    $('repTitle').textContent=t+' — الإجمالي: '+all.length+' (استفاد: '+yes+'، لم يستفد: '+(all.length-yes)+')'+(rows.length!==all.length?' — المعروض: '+rows.length:'');
+    tTitle[key]=t+(sec?' - القاطع '+sec:'')+' (استفاد: '+yes+'، لم يستفد: '+(all.length-yes)+')';
+    $('pHeadRep').textContent=tTitle[key]+' - '+today();
+    $('repTable').innerHTML=tblHTML(key,rows);
+    return;
+  }
   if(mode==='B'){
     const tot={};
     rows.forEach(r=>{if(r.a.kind==='cash'||r.a.value){tot[r.a.cur]=(tot[r.a.cur]||0)+(+r.a.value||0)}});
@@ -2402,7 +2554,7 @@ async function backupSave(){
       const rec=await attGet(a.id);
       if(rec)atts.push({id:a.id,name:rec.name,mime:rec.mime,size:rec.size,data:await blobToDataURL(rec.blob)});
     }
-    const obj={v:2,camp:CAMP,families:data,aids,aidCats:customCats,aidCatsRemoved:removedCats,attachments:atts};
+    const obj={v:2,camp:CAMP,families:data,aids,aidCats:customCats,aidCatsRemoved:removedCats,diseases:allDis(),majors:allMaj('uni'),majorsDip:allMaj('dip'),attachments:atts};
     const a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([JSON.stringify(obj)],{type:'application/json'}));
     a.download='نسخة_العائلات_'+today()+'.json';a.click();
@@ -2442,20 +2594,218 @@ async function backupRestore(){
       if(!a||!a.id||aids.some(z=>z.id===a.id))return;
       const fs=(a.fams||[]).map(i=>idMap[i]).filter(Boolean);
       if(!fs.length)return;
-      aids.push({...a,fams:fs});aAdded++;
+      const nw={...a,fams:fs};if(a.who){nw.who={};Object.keys(a.who).forEach(o=>{if(idMap[o])nw.who[idMap[o]]=a.who[o]})}
+      aids.push(nw);aAdded++;
     });
     saveAids();
     ((j&&Array.isArray(j.aidCats))?j.aidCats:[]).forEach(c=>{if(typeof c==='string'&&c.trim()&&!allCats().includes(c))customCats.push(c)});
     ((j&&Array.isArray(j.aidCatsRemoved))?j.aidCatsRemoved:[]).forEach(c=>{if(typeof c==='string'&&!removedCats.includes(c)&&BASE_CATS.includes(c))removedCats.push(c)});
     lsSet('aidcatsrm_v1',removedCats);saveCats();
+    ((j&&Array.isArray(j.diseases))?j.diseases:[]).forEach(d=>{if(typeof d==='string'&&d.trim()&&!allDis().some(z=>normAr(z)===normAr(d)))customDis.push(d.trim())});
+    ((j&&Array.isArray(j.majors))?j.majors:[]).forEach(d=>{if(typeof d==='string'&&d.trim()&&!allMaj('uni').some(z=>normAr(z)===normAr(d)))customMaj.push(d.trim())});
+    ((j&&Array.isArray(j.majorsDip))?j.majorsDip:[]).forEach(d=>{if(typeof d==='string'&&d.trim()&&!allMaj('dip').some(z=>normAr(z)===normAr(d)))customMajD.push(d.trim())});
+    lsSet('diseases_v1',customDis);lsSet('majors_v1',customMaj);lsSet('majors_dip_v1',customMajD);pxLists();
     $('totalCount').textContent=data.length;
     notify('تم استرجاع '+added+' عائلة'+(aAdded?' و'+aAdded+' سجل مساعدات':'')+'، وتم تجاهل '+skipped+' (مكررة أو غير صالحة)',true);
   }catch(e){notify('حصل خطأ أثناء الاسترجاع: '+(e&&e.message||''),false)}
 }
 
+
+/* ================= بيانات الأشخاص: صحة + مرض + مؤهل + تخصص ================= */
+const BASE_DIS=['سكري','ضغط','قلب','ربو','سرطان','فشل كلوي','أمراض عيون','أمراض عظام','أمراض نفسية','صرع','ثلاسيميا','إعاقة حركية','إعاقة سمعية','إعاقة بصرية','أمراض جلدية','أمراض جهاز هضمي'];
+const BASE_MAJ_DIP=['تمريض','قبالة','مختبرات طبية','إسعاف وطوارئ','صيدلة مساعدة','محاسبة','إدارة مكتبية / سكرتارية','حاسوب','برمجة','شبكات','تصميم جرافيك','تربية طفل','مساحة','كهرباء','ميكانيك','تسويق','سياحة وفنادق','تجميل','فنون'];
+const BASE_MAJ=['طب بشري','طب أسنان','طب بيطري','صيدلة','تمريض','قبالة (تمريض وقبالة)','مختبرات طبية','علاج طبيعي','تصوير طبي (أشعة)','هندسة مدنية','هندسة معمارية','هندسة كهربائية','هندسة ميكانيكية','هندسة حاسوب','هندسة اتصالات','هندسة كيميائية','هندسة صناعية','علم الحاسوب','نظم معلومات','برمجيات','محاسبة','إدارة أعمال','اقتصاد','تمويل ومصارف','تسويق','لغة عربية','لغة إنجليزية','شريعة','أصول دين','تربية (معلم صف)','تربية رياضية','تربية طفل','رياضيات','فيزياء','كيمياء','أحياء','قانون','إعلام وصحافة','علم نفس','خدمة اجتماعية','علوم سياسية','تاريخ','جغرافيا','زراعة','فنون جميلة','ترجمة'];
+const EDU_L18=['غير ملتحق','طالب'],EDU_A18=['بدون مؤهل','طالب','حاصل على مؤهل'];
+const STAGE_K=['ابتدائي','إعدادي','ثانوي','توجيهي','جامعي'],STAGE_A=['توجيهي','جامعي','تدريب مهني'];
+const DEG_UNI=['دبلوم','بكالوريوس','ماجستير','دكتوراه'];
+const DEG_GRAD=['أساسي / إعدادي','ثانوية عامة (توجيهي)','تدريب مهني','دبلوم','بكالوريوس','ماجستير','دكتوراه'];
+let customDis=load('diseases_v1',[]);if(!Array.isArray(customDis))customDis=[];
+let customMaj=load('majors_v1',[]);if(!Array.isArray(customMaj))customMaj=[];
+let customMajD=load('majors_dip_v1',[]);if(!Array.isArray(customMajD))customMajD=[];
+const majGrp=deg=>deg==='دبلوم'?'dip':'uni';
+function uniqAr(list){const seen=new Set(),out=[];list.forEach(s=>{s=String(s||'').trim();const k=normAr(s);if(s&&!seen.has(k)){seen.add(k);out.push(s)}});return out}
+const pxPeople=f=>[f.hx,f.wx,...(f.children||[]).map(k=>k.x)].filter(Boolean);
+function allDis(){const u=[];data.forEach(f=>pxPeople(f).forEach(x=>(x.dis||[]).forEach(d=>u.push(d))));return uniqAr(BASE_DIS.concat(customDis,u)).sort((a,b)=>a.localeCompare(b,'ar'))}
+function allMaj(g){
+  const u=[];data.forEach(f=>pxPeople(f).forEach(x=>{if(x.eu&&x.eu.maj&&(!g||majGrp(x.eu.deg)===g))u.push(x.eu.maj)}));
+  const base=g==='dip'?BASE_MAJ_DIP.concat(customMajD):g==='uni'?BASE_MAJ.concat(customMaj):BASE_MAJ.concat(BASE_MAJ_DIP,customMaj,customMajD);
+  return uniqAr(base.concat(u)).sort((a,b)=>a.localeCompare(b,'ar'))
+}
+function pxLists(){
+  const o=l=>l.map(d=>`<option value="${esc(d)}">`).join('');
+  [['disList',allDis()],['majList',allMaj()],['majList_uni',allMaj('uni')],['majList_dip',allMaj('dip')]].forEach(([id,l])=>{const e=$(id);if(e)e.innerHTML=o(l)});
+}
+function learnDis(d){d=String(d||'').trim().replace(/\s+/g,' ');if(d.length<2)return '';const ex=allDis().find(z=>normAr(z)===normAr(d));if(ex)return ex;customDis.push(d);lsSet('diseases_v1',customDis);pxLists();return d}
+function learnMaj(m,g){m=String(m||'').trim().replace(/\s+/g,' ');if(m.length<2)return m;const ex=allMaj(g).find(z=>normAr(z)===normAr(m));if(ex)return ex;if(g==='dip'){customMajD.push(m);lsSet('majors_dip_v1',customMajD)}else{customMaj.push(m);lsSet('majors_v1',customMaj)}pxLists();return m}
+const PX={};
+function pxNorm(o){
+  if(!o.eu||typeof o.eu!=='object')o.eu={st:'',stage:'',deg:'',maj:''};
+  ['st','stage','deg','maj'].forEach(k=>{if(o.eu[k]==null)o.eu[k]=''});
+  if(!Array.isArray(o.dis))o.dis=[];
+  o.sick=!!o.sick;if(o.note==null)o.note='';
+  return o;
+}
+function pxMk(p,obj,ageFn,note){
+  PX[p]={o:pxNorm(obj),age:ageFn,note:!!note};
+  return `<div class="pxBox" id="px_${p}">${pxInner(p)}</div>`;
+}
+function pxSel(p,key,arr,cur,ph){
+  return `<select onchange="pxSet('${p}','${key}',this.value)"><option value="">${ph}</option>${arr.map(v=>`<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(v)}</option>`).join('')}</select>`;
+}
+function pxInner(p){
+  const R_=PX[p],o=R_.o,e=o.eu,age=R_.age();
+  const opts=age!=null&&age>=18?EDU_A18:EDU_L18;
+  if(e.st&&!opts.includes(e.st))o.eu=Object.assign(e,{st:'',stage:'',deg:'',maj:''});
+  let h=`<div class="pxT">🩺 الحالة الصحية والمؤهل العلمي والملاحظات</div><div class="row3">`;
+  h+=`<div><label>الحالة الصحية</label><select onchange="pxSet('${p}','sick',this.value==='1')"><option value="0">سليم</option><option value="1" ${o.sick?'selected':''}>مريض</option></select></div>`;
+  if(o.sick){
+    h+=`<div style="grid-column:1/-1"><label>المرض (اكتب مرض جديد أو اختر من القائمة)</label>
+      <div style="display:flex;gap:6px"><input type="text" id="pxd_${p}" list="disList" placeholder="مثال: سكري" maxlength="60" onkeydown="if(event.key==='Enter'){event.preventDefault();pxAddDis('${p}')}">
+      <button type="button" class="btn gray small" onclick="pxAddDis('${p}')">➕ إضافة المرض</button></div>
+      <div class="pxChips">${o.dis.map((d,i)=>`<span class="pxChip">${esc(d)}<button type="button" title="حذف" onclick="pxDelDis('${p}',${i})">✕</button></span>`).join('')||'<span class="sub">ما انضاف مرض لسا.</span>'}</div></div>`;
+  }
+  if(age==null)h+=`<div style="grid-column:1/-1"><p class="sub">أدخل تاريخ الميلاد لتظهر خيارات المؤهل العلمي.</p></div>`;
+  else if(age>=6){
+    h+=`<div><label>${age>=18?'المؤهل العلمي':'الوضع التعليمي'}</label>${pxSel(p,'est',opts,e.st,'اختر...')}</div>`;
+    if(e.st==='طالب')h+=`<div><label>المرحلة الدراسية</label>${pxSel(p,'stage',age>=18?STAGE_A:STAGE_K,e.stage,'اختر...')}</div>`;
+    const uniStu=e.st==='طالب'&&e.stage==='جامعي',grad=e.st==='حاصل على مؤهل';
+    if(uniStu||grad)h+=`<div><label>${uniStu?'الدرجة التي يدرسها':'الدرجة العلمية'}</label>${pxSel(p,'deg',uniStu?DEG_UNI:DEG_GRAD,e.deg,'اختر...')}</div>`;
+    if((uniStu||grad)&&DEG_UNI.includes(e.deg))h+=`<div style="grid-column:1/-1"><label>التخصص (${e.deg}) — اكتب أو اختر من القائمة</label><div style="display:flex;gap:6px"><input type="text" list="majList_${majGrp(e.deg)}" value="${esc(e.maj)}" maxlength="60" placeholder="مثال: ${majGrp(e.deg)==='dip'?'تمريض':'طب بشري'}" oninput="PX['${p}'].o.eu.maj=this.value" onchange="pxSet('${p}','maj',this.value)">
+      <button type="button" class="btn gray small" onclick="pxAddMaj('${p}')">➕ إضافة تخصص جديد</button></div><p class="sub" style="margin:4px 0 0">لو تخصصه مش بالقائمة أو اسمه مختلف، اكتبه واضغط "إضافة تخصص جديد" وبيضل بالقائمة.</p></div>`;
+  }
+  h+=`</div>`;
+  if(R_.note)h+=`<label>ملاحظات عن الصحة والمؤهل (اختياري)</label><input type="text" maxlength="300" value="${esc(o.note)}" oninput="PX['${p}'].o.note=this.value">`;
+  return h;
+}
+function pxRefresh(p){const b=$('px_'+p);if(b&&PX[p])b.innerHTML=pxInner(p)}
+function pxRefreshAll(){Object.keys(PX).forEach(pxRefresh)}
+function pxSet(p,k,v){
+  const o=PX[p].o,e=o.eu;
+  if(k==='sick'){o.sick=!!v;if(!v)o.dis=[];pxRefresh(p)}
+  else if(k==='est'){o.eu={st:v,stage:'',deg:'',maj:''};pxRefresh(p)}
+  else if(k==='stage'){e.stage=v;e.deg='';e.maj='';pxRefresh(p)}
+  else if(k==='deg'){if(majGrp(e.deg)!==majGrp(v)||!DEG_UNI.includes(v))e.maj='';e.deg=v;pxRefresh(p)}
+  else if(k==='maj'){e.maj=String(v||'').trim()}
+}
+function pxAddMaj(p){
+  const o=PX[p].o,e=o.eu,g=majGrp(e.deg);
+  const raw=String(e.maj||'').trim().replace(/\s+/g,' ');
+  if(raw.length<2)return notify('اكتب اسم التخصص أولاً',false);
+  const had=allMaj(g).some(z=>normAr(z)===normAr(raw));
+  e.maj=learnMaj(raw,g);pxRefresh(p);
+  notify(had?'التخصص موجود أصلاً بالقائمة وتم اختياره':'تمت إضافة التخصص "'+e.maj+'" للقائمة',true);
+}
+function pxAddDis(p){
+  const el=$('pxd_'+p),o=PX[p].o;if(!el)return;
+  const d=learnDis(el.value);
+  if(!d)return notify('اكتب اسم المرض (حرفين على الأقل)',false);
+  if(!o.dis.some(z=>normAr(z)===normAr(d)))o.dis.push(d);
+  pxRefresh(p);
+}
+function pxDelDis(p,i){PX[p].o.dis.splice(i,1);pxRefresh(p)}
+function pxClone(p){const r=PX[p];return r?JSON.parse(JSON.stringify(pxNorm(r.o))):{}}
+function pxReset(p){const r=PX[p];if(!r)return;Object.keys(r.o).forEach(k=>delete r.o[k]);pxNorm(r.o);pxRefresh(p)}
+function eduText(x,age){
+  const e=x&&x.eu;if(!e||!e.st||age==null||age<6)return '';
+  if(e.st==='طالب')return 'طالب '+(e.stage||'')+(e.deg?' ('+e.deg+')':'');
+  if(e.st==='حاصل على مؤهل')return e.deg||'حاصل على مؤهل';
+  return e.st;
+}
+function pxSumHTML(x,dob,note){
+  if(!x)return '';
+  const out=[];
+  if(x.sick)out.push('<span style="color:#c92a2a">🩺 مريض'+((x.dis&&x.dis.length)?': '+x.dis.map(esc).join('، '):'')+'</span>');
+  const et=eduText(x,ageOf(dob));
+  if(et)out.push('🎓 '+esc(et)+((x.eu&&x.eu.maj)?' — '+esc(x.eu.maj):''));
+  if(note&&x.note)out.push('<span style="white-space:pre-line">📝 '+esc(x.note)+'</span>');
+  return out.length?`<div style="flex-basis:100%;font-size:13px;color:#495057;margin:2px 0">${out.join(' &nbsp;|&nbsp; ')}</div>`:'';
+}
+let addHx={},addWx={};
+function pxMountAdd(){
+  addHx={};addWx={};
+  if($('pxH'))$('pxH').innerHTML=pxMk('h',addHx,()=>{const e=$('hDob');return e?ageOf(e.value):null},true);
+  if($('pxW'))$('pxW').innerHTML=pxMk('w',addWx,()=>{const e=$('wDob');return e?ageOf(e.value):null},true);
+}
+document.addEventListener('change',e=>{if(e.target&&e.target.type==='date')pxRefreshAll()});
+/* مساعدات/مشاريع لفرد معين */
+const benWho={aid:{},prj:{}};
+/* اختيار المستفيدين حسب شرط (مرضى، طلاب، ...) */
+const condBox={aid:'aCond',prj:'pCond',rep:'repCond'};
+const CH=t=>t==='rep'?'renderRep()':"condPrev('"+t+"')";
+function condRender(t){
+  const box=$(condBox[t]);if(!box)return;
+  const keep={};box.querySelectorAll('[data-c]').forEach(e=>keep[e.dataset.c]=e.type==='checkbox'?e.checked:e.value);
+  const v=(k,d)=>keep[k]!==undefined?keep[k]:d;
+  const opt=(arr,cur,first)=>`<option value="">${first}</option>`+arr.map(a=>`<option value="${esc(a)}" ${a===cur?'selected':''}>${esc(a)}</option>`).join('');
+  const ck=(k,l)=>`<label style="padding:6px 12px"><input type="checkbox" data-c="${k}" ${v(k,true)?'checked':''} onchange="${CH(t)}">${l}</label>`;
+  box.innerHTML=`<details class="condBox" style="margin-top:10px;background:#f8fbff;border:1px dashed #a5c4de;border-radius:10px;padding:8px 12px" ${(box.dataset.open||t==='rep')?'open':''} ontoggle="this.parentNode.dataset.open=this.open?'1':''">
+    <summary style="cursor:pointer;font-weight:bold;color:#17496a">🎯 اختيار المستفيدين حسب شرط (مرضى / طلاب ...)</summary>
+    <p class="sub">حدد الشرط وبتضيف النظام كل الأشخاص المطابقين (وعائلاتهم) تلقائياً، والمساعدة بتتسجل لهم هم بس.</p>
+    <div class="radios" style="margin-bottom:6px">${ck('K','🧒 الأبناء')}${ck('M','👩 الأمهات')}${ck('F','👨 الآباء')}</div>
+    <div class="row3">
+      <div><label>🩺 الحالة الصحية</label><select data-c="sick" onchange="${CH(t)}"><option value="">بدون شرط</option><option value="1" ${v('sick','')==='1'?'selected':''}>كل المرضى</option>${allDis().map(d=>`<option value="${esc(d)}" ${v('sick','')===d?'selected':''}>مريض: ${esc(d)}</option>`).join('')}</select></div>
+      <div><label>🎓 الوضع التعليمي</label><select data-c="edu" onchange="${CH(t)}">
+        ${[['','بدون شرط'],['طالب','طالب (أي مرحلة)'],['مدرسي','طالب مدرسي (ابتدائي - توجيهي)'],['جامعي','طالب جامعي'],['حاصل على مؤهل','حاصل على مؤهل'],['بدون','بدون مؤهل / غير ملتحق']].map(o=>`<option value="${o[0]}" ${v('edu','')===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+      <div><label>المرحلة / الدرجة</label><select data-c="lvl" onchange="${CH(t)}">${opt(uniqAr(STAGE_K.concat(STAGE_A,DEG_GRAD)),v('lvl',''),'الكل')}</select></div>
+      <div><label>التخصص</label><input type="text" data-c="maj" list="majList" value="${esc(v('maj',''))}" placeholder="مثال: تمريض" oninput="${CH(t)}"></div>
+      <div><label>العمر من</label><input type="number" data-c="a1" min="0" value="${esc(v('a1',''))}" oninput="${CH(t)}"></div>
+      <div><label>العمر إلى</label><input type="number" data-c="a2" min="0" value="${esc(v('a2',''))}" oninput="${CH(t)}"></div>
+    </div>
+    ${t==='rep'?'':`<div class="acts" style="margin-top:10px;align-items:center"><button class="btn green small" onclick="condAdd('${t}')">➕ إضافة المطابقين للمختارين</button><b id="cp_${t}"></b></div>`}
+  </details>`;
+  condPrev(t);
+}
+function condVals(t){const o={};$(condBox[t]).querySelectorAll('[data-c]').forEach(e=>o[e.dataset.c]=e.type==='checkbox'?e.checked:e.value);return o}
+function condMatch(t){
+  const c=condVals(t),out=[];
+  if(!c.sick&&!c.edu&&!c.lvl&&!(c.maj||'').trim())return null;
+  const crit={sk:c.sick?'1':'',ds:c.sick&&c.sick!=='1'?c.sick:'',ed:c.edu,lv:c.lvl,mj:c.maj};
+  const a1=c.a1===''?null:+c.a1,a2=c.a2===''?null:+c.a2;
+  const okAge=dob=>{if(a1==null&&a2==null)return true;const a=ageOf(dob);if(a==null)return false;return (a1==null||a>=a1)&&(a2==null||a<=a2)};
+  data.forEach(f=>{
+    if(c.K)f.children.forEach(k=>{if(okAge(k.dob)&&xMatchWith(k,crit))out.push({f,key:String(k.id)})});
+    if(c.F&&hasHusband(f.status)&&f.hName&&okAge(f.hDob)&&xMatchWith({dob:f.hDob,x:f.hx},crit))out.push({f,key:'h'});
+    if(c.M&&hasWife(f.status)&&f.wName&&okAge(f.wDob)&&xMatchWith({dob:f.wDob,x:f.wx},crit))out.push({f,key:'w'});
+  });
+  return out;
+}
+function condPrev(t){
+  const el=$('cp_'+t);if(!el)return;
+  const r=condMatch(t);
+  el.textContent=r==null?'اختر شرطاً واحداً على الأقل':'المطابقون: '+r.length+' شخص من '+new Set(r.map(x=>x.f.id)).size+' عائلة';
+}
+function condAdd(t){
+  const r=condMatch(t);
+  if(r==null)return notify('اختر شرطاً واحداً على الأقل (صحة أو تعليم)',false);
+  if(!r.length)return notify('ما في أشخاص بنطبق عليهم الشرط',false);
+  const sel=t==='aid'?aidSel:prjSel;
+  const by={};r.forEach(x=>{(by[x.f.id]=by[x.f.id]||[]).push(x.key)});
+  Object.keys(by).forEach(id=>{id=+id;if(!sel.includes(id))sel.push(id);benWho[t][id]=by[id].length===1?by[id][0]:by[id]});
+  if(t==='aid'){aidSearch();aidRenderSel();rosterRender('aid')}else{prjSearch();prjRenderSel();rosterRender('prj')}
+  notify('تمت إضافة '+r.length+' شخص من '+Object.keys(by).length+' عائلة',true);
+}
+
+function personsOf(f){
+  const m=f.status==='متزوج',out=[];
+  if(f.hName)out.push({k:'h',n:(m?'الزوج: ':'رب الأسرة: ')+f.hName});
+  if(f.wName)out.push({k:'w',n:(m?'الزوجة: ':'رب الأسرة: ')+f.wName});
+  f.children.forEach(k=>out.push({k:String(k.id),n:(k.gender==='ذكر'?'ابن: ':'ابنة: ')+k.name}));
+  return out;
+}
+const whoArr=v=>Array.isArray(v)?v:(v?[v]:[]);
+function personName(f,key){return whoArr(key).map(k=>{const p=personsOf(f).find(x=>x.k===String(k));return p?p.n:''}).filter(Boolean).join('، ')}
+function whoSelHTML(t,f){
+  const raw=benWho[t][f.id],arr=whoArr(raw),cur=arr.length===1?String(arr[0]):'';
+  return `<select class="whoSel" title="لمين المساعدة؟" onchange="if(this.value!=='__m')benWho['${t}'][${f.id}]=this.value"><option value="">الأسرة كاملة</option>${arr.length>1?`<option value="__m" selected>${arr.length} أشخاص (حسب الشرط): ${esc(personName(f,arr))}</option>`:''}${personsOf(f).map(p=>`<option value="${esc(p.k)}" ${p.k===cur?'selected':''}>${esc(p.n)}</option>`).join('')}</select>`;
+}
+function whoOut(t,fams){
+  const w={};fams.forEach(id=>{const k=benWho[t][id];if(k)w[id]=k});
+  return Object.keys(w).length?{who:w}:{};
+}
+
 /* ================= تشغيل ================= */
 $('kidFormAdd').innerHTML=kidFields('ka');
-buildAddExtras();toggleBoxes();renderNewKids();
+buildAddExtras();toggleBoxes();renderNewKids();pxMountAdd();pxLists();
 fillSectors('fSector','كل القواطع');fillSectors('spSector','كل القواطع');
 fillSectors('aSec','اختر القاطع...');fillSectors('rSector','كل القواطع');
 renderPick('fam');renderPick('kid');renderPick('prj');renderPick('prjB');fillSectors('pSec','اختر القاطع...');renderPick('spec');renderPick(repKey());
