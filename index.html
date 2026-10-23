@@ -777,7 +777,7 @@
   </div>
 </section>
 </main>
-<datalist id="disList"></datalist><datalist id="majList"></datalist><datalist id="majList_uni"></datalist><datalist id="majList_dip"></datalist>
+<datalist id="nameList"></datalist><datalist id="disList"></datalist><datalist id="majList"></datalist><datalist id="majList_uni"></datalist><datalist id="majList_dip"></datalist>
 <footer class="credit">
   <div class="creditCard">
     <span class="creditLine"></span>
@@ -3115,6 +3115,26 @@ function allMaj(g){
   const base=g==='dip'?BASE_MAJ_DIP.concat(customMajD):g==='uni'?BASE_MAJ.concat(customMaj):BASE_MAJ.concat(BASE_MAJ_DIP,customMaj,customMajD);
   return uniqAr(base.concat(u)).sort((a,b)=>a.localeCompare(b,'ar'))
 }
+function allNames(){const u=[];data.forEach(f=>{[f.hName,f.wName].forEach(n=>n&&u.push(n));(f.children||[]).forEach(k=>k.name&&u.push(k.name))});return uniqAr(u).sort((a,b)=>a.localeCompare(b,'ar'))}
+function nameSuggest(inp){
+  const dl=$('nameList');if(!dl)return;
+  const v=String(inp.value||'').replace(/\s+/g,' ').trimStart(),q=normAr(v);
+  let L=[];
+  if(/_name$/.test(inp.id)){
+    const fe=$('hName')&&$('hName').value.trim()?$('hName'):$('e_hName'),fa=fe?fe.value.trim().replace(/\s+/g,' '):'';
+    const w=fa?fa.split(' '):[];
+    if(v&&w.length&&v.split(' ').length<=2){
+      const first=v.trim();
+      if(w.length>=3)L.push(first+' '+[w[0],w[1],w[w.length-1]].join(' '));
+      L.push(first+' '+fa);
+      if(w.length>=2)L.push(first+' '+w.slice(0,1).concat(w.slice(-1)).join(' '));
+    }
+  }
+  if(q.length>=2)L=L.concat(allNames().filter(n=>normAr(n).includes(q)&&normAr(n)!==q).slice(0,12));
+  dl.innerHTML=uniqAr(L).slice(0,14).map(d=>`<option value="${esc(d)}">`).join('');
+}
+document.addEventListener('focusin',e=>{const t=e.target;if(t&&t.tagName==='INPUT'&&(/_name$/.test(t.id)||/^(e_)?[hw]Name$/.test(t.id)||/^e_[hw]Name$/.test(t.id))){t.setAttribute('list','nameList');t.setAttribute('autocomplete','off');nameSuggest(t)}});
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.getAttribute&&t.getAttribute('list')==='nameList')nameSuggest(t)});
 function pxLists(){
   const o=l=>l.map(d=>`<option value="${esc(d)}">`).join('');
   [['disList',allDis()],['majList',allMaj()],['majList_uni',allMaj('uni')],['majList_dip',allMaj('dip')]].forEach(([id,l])=>{const e=$(id);if(e)e.innerHTML=o(l)});
@@ -3145,9 +3165,9 @@ function pxInner(p){
   h+=`<div><label>الحالة الصحية</label><select onchange="pxSet('${p}','hs',this.value)"><option value="0">سليم</option><option value="1" ${o.sick?'selected':''}>مريض</option><option value="2" ${o.inj?'selected':''}>مصاب</option></select></div>`;
   if(o.inj)h+=`<div style="grid-column:1/-1"><label>نوع الإصابة (اختياري)</label><input type="text" maxlength="100" placeholder="مثال: إصابة حرب - بتر قدم" value="${esc(o.injNote)}" oninput="PX['${p}'].o.injNote=this.value"></div>`;
   if(o.sick){
-    h+=`<div style="grid-column:1/-1"><label>المرض (اكتب مرض جديد أو اختر من القائمة)</label>
-      <div style="display:flex;gap:6px"><input type="text" id="pxd_${p}" list="disList" placeholder="مثال: سكري" maxlength="60" onkeydown="if(event.key==='Enter'){event.preventDefault();pxAddDis('${p}')}">
-      <button type="button" class="btn gray small" onclick="pxAddDis('${p}')">➕ إضافة المرض</button></div>
+    h+=`<div style="grid-column:1/-1"><label>الأمراض (فيك تضيف أكثر من مرض: اكتب المرض واضغط إضافة، وكرر)</label>
+      <div style="display:flex;gap:6px"><input type="text" id="pxd_${p}" list="disList" placeholder="مثال: ضغط، سكري (فيك تضيف أكثر من مرض)" maxlength="120" oninput="if(event.inputType==='insertReplacementText'||(!event.inputType&&this.value))pxAddDis('${p}')" onkeydown="if(event.key==='Enter'){event.preventDefault();pxAddDis('${p}')}">
+      <button type="button" class="btn gray small" onclick="pxAddDis('${p}')">➕ إضافة مرض</button></div>
       <div class="pxChips">${o.dis.map((d,i)=>`<span class="pxChip">${esc(d)}<button type="button" title="حذف" onclick="pxDelDis('${p}',${i})">✕</button></span>`).join('')||'<span class="sub">ما انضاف مرض لسا.</span>'}</div></div>`;
   }
   {const g=R_.gen(),fem=g!=='ذكر';
@@ -3194,10 +3214,12 @@ function pxAddMaj(p){
 }
 function pxAddDis(p){
   const el=$('pxd_'+p),o=PX[p].o;if(!el)return;
-  const d=learnDis(el.value);
-  if(!d)return notify('اكتب اسم المرض (حرفين على الأقل)',false);
-  if(!o.dis.some(z=>normAr(z)===normAr(d)))o.dis.push(d);
+  const parts=String(el.value||'').split(/[،,+\n]+|\sو\s/).map(z=>z.trim()).filter(Boolean);
+  let n=0;
+  parts.forEach(x=>{const d=learnDis(x);if(d&&!o.dis.some(z=>normAr(z)===normAr(d))){o.dis.push(d);n++}});
+  if(!parts.length||!n&&!parts.some(x=>x.length>=2))return notify('اكتب اسم المرض (حرفين على الأقل)',false);
   pxRefresh(p);
+  setTimeout(()=>{const e=$('pxd_'+p);if(e)e.focus()},50);
 }
 function pxDelDis(p,i){PX[p].o.dis.splice(i,1);pxRefresh(p)}
 function pxClone(p){const r=PX[p];return r?JSON.parse(JSON.stringify(pxNorm(r.o))):{}}
