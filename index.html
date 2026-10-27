@@ -836,6 +836,10 @@ const BASE_CATS=['حرامات','فرشات','خضار','لحوم','نظافة',
 
 const KEY='families_v1',AKEY='aids_v1',CKEY='aidcats_v1',COLKEY='cols_v2';
 function load(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
+const hlthStr=(x,withDis)=>{x=x||{};const o=[];
+  if(x.sick)o.push('مريض'+(withDis&&(x.dis||[]).length?': '+x.dis.join('، '):''));
+  if(x.inj)o.push('مصاب'+(x.injNote?': '+x.injNote:''));
+  return o.length?o.join(' + '):'سليم'};
 const payStr=r=>r.mob2?((r.payType?r.payType+': ':'')+r.mob2):'-';
 const PAY_CLR={'بنك':'C0392B','محفظة بال باي':'7D3C98','جوال باي':'1E8E3E'};
 const payT=r=>r.mob2?(r.payType||'-'):'-';
@@ -1915,7 +1919,7 @@ const KIDCOLS=[
  {k:'gen',l:'الجنس',v:r=>r.k.gender,h:r=>gBadge(r.k.gender)},
  {k:'kst',l:'حالة الابن',v:r=>r.role==='الأب'||r.role==='الأم'?'-':r.k.status,h:r=>r.role==='الأب'||r.role==='الأم'?'-':kidBadge(r.k),x:r=>r.k.status==='يتيم'?({fill:'E03131',color:'FFFFFF'}):({fill:'D3F9D8'})},
  {k:'knote',l:'ملاحظات',v:r=>[r.k.note,r.k.x&&r.k.x.note].filter(Boolean).join(' | ')||'-',c:'wide'},
- {k:'sick',l:'الحالة الصحية',v:r=>(r.k.x&&r.k.x.inj)?('مصاب'+(r.k.x.injNote?': '+r.k.x.injNote:'')):(r.k.x&&r.k.x.sick)?'مريض':'سليم',x:r=>(r.k.x&&r.k.x.inj)?({fill:'FFD8A8'}):(r.k.x&&r.k.x.sick)?({fill:'FFE3E3'}):({})},
+ {k:'sick',l:'الحالة الصحية',v:r=>hlthStr(r.k.x,false),x:r=>(r.k.x&&r.k.x.inj)?({fill:'FFD8A8'}):(r.k.x&&r.k.x.sick)?({fill:'FFE3E3'}):({})},
  {k:'dis',l:'المرض',v:r=>(r.k.x&&r.k.x.sick&&(r.k.x.dis||[]).join('، '))||'-',c:'wide'},
  {k:'edu',l:'المؤهل العلمي',v:r=>eduText(r.k.x,ageOf(r.k.dob))||'-',c:'nw'},
  {k:'maj',l:'التخصص',v:r=>(r.k.x&&r.k.x.eu&&r.k.x.eu.maj)||'-',c:'nw'},
@@ -1994,7 +1998,7 @@ const REPGCOLS=[
  {k:'nid',l:'رقم الهوية',v:r=>r.p.nid,c:'nw'},
  {k:'age',l:'العمر',v:r=>fmtAge(ageOf(r.p.dob)),c:'num'},
  {k:'dob',l:'تاريخ الميلاد',v:r=>r.p.dob||'-',c:'nw'},
- {k:'sick',l:'الحالة الصحية',v:r=>(r.p.x&&r.p.x.inj)?('مصاب'+(r.p.x.injNote?': '+r.p.x.injNote:'')):(r.p.x&&r.p.x.sick)?('مريض'+((r.p.x.dis||[]).length?': '+r.p.x.dis.join('، '):'')):'سليم',c:'wide'},
+ {k:'sick',l:'الحالة الصحية',v:r=>hlthStr(r.p.x,true),c:'wide'},
  {k:'edu',l:'المؤهل العلمي',v:r=>eduText(r.p.x,ageOf(r.p.dob))||'-',c:'nw'},
  {k:'maj',l:'التخصص',v:r=>(r.p.x&&r.p.x.eu&&r.p.x.eu.maj)||'-',c:'nw'},
  {k:'job',l:'الوضع الوظيفي',v:r=>(r.p.x&&r.p.x.job&&ageOf(r.p.dob)>=18)?jobLabel(r.p.x.job,r.p.gender):'-',c:'nw'},
@@ -2198,15 +2202,19 @@ async function xlsxSave(wb,name,n,cols){
     let anc=[];
     if(hdr.logo==='c'){
       let W=0;for(let i=0;i<n;i++)W+=px(cols[i]);
-      const half=Math.round(String(CAMP).length*13/2);
+      const half=Math.round(String(CAMP).length*17/2);
       let x=Math.round(W/2+half+10);if(x+SZ>W)x=Math.max(0,W-SZ);
       let acc=0,c=0;while(c<n-1&&acc+px(cols[c])<=x){acc+=px(cols[c]);c++}
       anc.push([c,x-acc]);
     }
-    if(hdr.logo==='l'||hdr.logo==='b'){let acc=0,c=n-1;while(c>0&&acc+px(cols[c])<SZ){acc+=px(cols[c]);c--}if(n>1||!anchors.length)anchors.push(c)}
+    if(hdr.logo==='l'||hdr.logo==='b'){
+      let W=0;for(let i=0;i<n;i++)W+=px(cols[i]);
+      let x=Math.max(0,W-SZ-3),acc=0,c=0;while(c<n-1&&acc+px(cols[c])<=x){acc+=px(cols[c]);c++}
+      anc.unshift([c,x-acc]);
+    }
     const EMU=SZ*9525;
     const pic=(i,col)=>{let off=0;if(Array.isArray(col)){off=col[1]*9525;col=col[0]}return `<xdr:oneCellAnchor><xdr:from><xdr:col>${col}</xdr:col><xdr:colOff>${off}</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${EMU}" cy="${EMU}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${i+2}" name="Logo ${i+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rIdImg1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${EMU}" cy="${EMU}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`};
-    z.file('xl/drawings/drawing1.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'+anchors.concat(anc.length?anc:[]).map((col,i)=>pic(i,col)).join('')+'</xdr:wsDr>',{createFolders:false});
+    z.file('xl/drawings/drawing1.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'+anchors.concat(anc).map((col,i)=>pic(i,col)).join('')+'</xdr:wsDr>',{createFolders:false});
     z.file('xl/drawings/_rels/drawing1.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdImg1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/logo1.png"/></Relationships>',{createFolders:false});
     z.file('xl/media/logo1.png',LOGO_DATA.split(',')[1],{base64:true,createFolders:false});
     const relP='xl/worksheets/_rels/sheet1.xml.rels',rel='<Relationship Id="rIdDrw1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>';
@@ -2261,6 +2269,11 @@ function exportXlsx(t){
     if(fx[c.k])return {wch:fx[c.k]};
     return {wch:Math.max(7,Math.min(34,Math.round(m+2)))};
   });
+  if(hdr.logo&&hr.includes('camp')){ /* لو الجدول ضيّق نوسّعه عشان الشعار ما يغطي اسم المخيم */
+    const pxw=w=>Math.round(w.wch*7+5),W=widths.reduce((t,w)=>t+pxw(w),0);
+    const need=(hdr.logo==='b'||hdr.logo==='c'?2:1)*72+String(CAMP).length*17+30;
+    if(W<need){const f=need/W;widths.forEach(w=>{w.wch=Math.round((w.wch*7+5)*f/7*10)/10-0.7})}
+  }
   const heights=hr.map(k=>({hpx:k==='camp'?(hdr.logo?62:44):k==='title'?30:24})).concat([{hpx:36}]);
   rows.forEach((r,ri)=>{
     let lines=1;
@@ -3162,7 +3175,7 @@ function pxInner(p){
   const opts=age!=null&&age>=18?EDU_A18:EDU_L18;
   if(e.st&&!opts.includes(e.st))o.eu=Object.assign(e,{st:'',stage:'',deg:'',maj:''});
   let h=`<div class="pxT">🩺 الحالة الصحية والمؤهل العلمي والملاحظات</div><div class="row3">`;
-  h+=`<div><label>الحالة الصحية</label><select onchange="pxSet('${p}','hs',this.value)"><option value="0">سليم</option><option value="1" ${o.sick?'selected':''}>مريض</option><option value="2" ${o.inj?'selected':''}>مصاب</option></select></div>`;
+  h+=`<div><label>الحالة الصحية (فيك تختار الاثنين: مريض ومصاب)</label><div class="radios"><label class="chk"><input type="checkbox" ${o.sick?'checked':''} onchange="pxSet('${p}','sick',this.checked)">🩺 مريض</label><label class="chk"><input type="checkbox" ${o.inj?'checked':''} onchange="pxSet('${p}','inj',this.checked)">🩹 مصاب</label></div><div class="sub">بدون اختيار = سليم</div></div>`;
   if(o.inj)h+=`<div style="grid-column:1/-1"><label>نوع الإصابة (اختياري)</label><input type="text" maxlength="100" placeholder="مثال: إصابة حرب - بتر قدم" value="${esc(o.injNote)}" oninput="PX['${p}'].o.injNote=this.value"></div>`;
   if(o.sick){
     h+=`<div style="grid-column:1/-1"><label>الأمراض (فيك تضيف أكثر من مرض: اكتب المرض واضغط إضافة، وكرر)</label>
@@ -3194,7 +3207,8 @@ function pxRefresh(p){const b=$('px_'+p);if(b&&PX[p])b.innerHTML=pxInner(p)}
 function pxRefreshAll(){Object.keys(PX).forEach(pxRefresh)}
 function pxSet(p,k,v){
   const o=PX[p].o,e=o.eu;
-  if(k==='hs'){o.sick=v==='1';o.inj=v==='2';if(!o.sick)o.dis=[];if(!o.inj)o.injNote='';pxRefresh(p)}
+  if(k==='inj'){o.inj=!!v;if(!v)o.injNote='';pxRefresh(p)}
+  else if(k==='hs'){o.sick=v==='1';o.inj=v==='2';if(!o.sick)o.dis=[];if(!o.inj)o.injNote='';pxRefresh(p)}
   else if(k==='job'){o.job=v}
   else if(k==='preg'||k==='nurs'){o[k]=!!v}
   else if(k==='dsb'){o.dsb=!!v;if(!v)o.dsbNote='';pxRefresh(p)}
