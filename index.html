@@ -139,11 +139,15 @@
   table.dt td.num{font-weight:bold;color:#1f5f8b;min-width:50px}
   table.dt td.wide{min-width:260px;text-align:right}
   .kline{white-space:nowrap;text-align:right;padding:2px 0}
+  .tag.t5{background:#fff3bf;color:#7a5b00}
   .empty{padding:20px;text-align:center;color:#6c7a89}
   .campHead{background:#ffd43b;border:3px solid #b8860b;border-radius:10px;text-align:center;font-size:26px;font-weight:bold;padding:12px;margin-bottom:10px;color:#1d2733;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .campHead{display:flex;align-items:center;justify-content:center;gap:14px}
   .campHead .lg{height:64px;width:64px;object-fit:contain;flex:none}
   .campHead .cn{flex:1;text-align:center}
+  .campFt{display:flex;margin-top:22px;page-break-inside:avoid}
+  .campFt .ftBox{min-width:220px;text-align:center;font-size:14px;line-height:1.8;padding:6px 18px;border-top:2px solid #1d2733}
+  .campFt .ftB{font-weight:bold}
   .campHead.mid .cn{flex:none}
   .hdrOpts{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:8px 0}
   .hdrOpts label{display:inline-flex;align-items:center;gap:6px;font-size:14px}
@@ -251,6 +255,8 @@
       <label><input type="radio" name="base" value="d" onchange="toggleBoxes()">مطلق/ة</label>
       <label><input type="radio" name="base" value="w" onchange="toggleBoxes()">أرمل/ة</label>
       <label><input type="radio" name="base" value="a" onchange="toggleBoxes()">مهجورة</label>
+      <label><input type="radio" name="base" value="s" onchange="toggleBoxes()">أعزب / عزباء</label>
+      <label><input type="radio" name="base" value="o" onchange="toggleBoxes()">أيتام بدون أب وأم</label>
     </div>
 
     <div id="genderBox" class="hide">
@@ -280,10 +286,11 @@
     </div>
 
     <div id="addHouse"></div>
+    <div id="addSup"></div>
     <div id="addCases"></div>
 
-    <div class="kidsBox">
-      <h3>👶 إضافة الأبناء</h3>
+    <div class="kidsBox" id="kidsBoxAdd">
+      <h3 id="kidsTitleAdd">👶 إضافة الأبناء</h3>
       <div class="countBadge">عدد أفراد الأسرة (تلقائي): <b id="countShow">0</b></div>
       <input type="hidden" id="count">
       <p class="sub" id="kidsHint"></p>
@@ -318,6 +325,8 @@
           <label><input type="checkbox" class="fsChk" value="w" onchange="renderList()">أرمل / أرملة</label>
           <label><input type="checkbox" class="fsChk" value="d" onchange="renderList()">مطلق / مطلقة</label>
           <label><input type="checkbox" class="fsChk" value="a" onchange="renderList()">مهجورة</label>
+          <label><input type="checkbox" class="fsChk" value="s" onchange="renderList()">أعزب / عزباء</label>
+          <label><input type="checkbox" class="fsChk" value="o" onchange="renderList()">أيتام بدون والدين</label>
           <button class="btn gray small" onclick="fsClear()">✖ إلغاء الاختيار (الكل)</button>
         </div>
       </div>
@@ -369,6 +378,7 @@
     <div id="pick_fam" class="noprint"></div>
     <div class="listTitle printOnly" id="pHeadList"></div>
     <div id="listTable"></div>
+    <div class="printOnly" data-campftr></div>
   </div>
 </section>
 
@@ -446,6 +456,7 @@
     <div id="pick_kid" class="noprint"></div>
     <div class="listTitle printOnly" id="pHeadKids"></div>
     <div id="kidsTable"></div>
+    <div class="printOnly" data-campftr></div>
   </div>
 </section>
 
@@ -495,6 +506,7 @@
     <div id="pick_spec" class="noprint"></div>
     <div class="listTitle printOnly" id="pHeadSpec"></div>
     <div id="specTable"></div>
+    <div class="printOnly" data-campftr></div>
   </div>
 </section>
 
@@ -633,6 +645,7 @@
     <div id="pick_prj" class="noprint"></div>
     <div class="listTitle printOnly" id="pHeadPrj"></div>
     <div id="prjTable"></div>
+    <div class="printOnly" data-campftr></div>
   </div>
   <div class="card hide" id="prjBenCard">
     <div class="printOnly" data-camphdr></div>
@@ -648,6 +661,7 @@
     <div id="pick_prjB" class="noprint"></div>
     <div class="listTitle printOnly" id="pHeadPrjB"></div>
     <div id="prjBTable"></div>
+    <div class="printOnly" data-campftr></div>
   </div>
 </section>
 
@@ -709,16 +723,17 @@
     <div id="pick_rep" class="noprint"></div>
     <div class="listTitle printOnly" id="pHeadRep"></div>
     <div id="repTable"></div>
+    <div class="printOnly" data-campftr></div>
   </div>
 </section>
 
 <!-- ================= بحث بالهوية + تعديل / حذف ================= -->
 <section id="byid" class="hide">
   <div class="card">
-    <h2>بحث برقم الهوية (تعديل / حذف)</h2>
-    <p class="sub">اكتب رقم هوية أي فرد من الأسرة (الزوج أو الزوجة أو أحد الأبناء)، وبتظهر الأسرة وخيارات التعديل والحذف.</p>
-    <label>رقم الهوية</label>
-    <input type="text" id="idQ" inputmode="numeric" maxlength="9" oninput="ui.fam=null;ui.panel=null;renderById()">
+    <h2>بحث بالهوية أو الاسم (تعديل / حذف)</h2>
+    <p class="sub">اكتب رقم هوية أي فرد من الأسرة، أو اكتب اسم أو اسم العائلة (مثلاً: الشامي)، وبتظهر كل الأسر المطابقة وخيارات التعديل والحذف.</p>
+    <label>رقم الهوية أو الاسم</label>
+    <input type="text" id="idQ" maxlength="60" placeholder="رقم هوية أو اسم / اسم عائلة" oninput="ui.fam=null;ui.panel=null;renderById()">
   </div>
   <div id="idResults"></div>
 </section>
@@ -777,7 +792,7 @@
   </div>
 </section>
 </main>
-<datalist id="nameList"></datalist><datalist id="disList"></datalist><datalist id="majList"></datalist><datalist id="majList_uni"></datalist><datalist id="majList_dip"></datalist>
+<datalist id="nameList"></datalist><datalist id="orphRelList"><option value="الجد"><option value="الأب"><option value="الأم"><option value="العم"><option value="الخال"><option value="الأخ"><option value="الجدة"><option value="العمة"><option value="الخالة"><option value="الأخت"></datalist><datalist id="disList"></datalist><datalist id="majList"></datalist><datalist id="majList_uni"></datalist><datalist id="majList_dip"></datalist>
 <footer class="credit">
   <div class="creditCard">
     <span class="creditLine"></span>
@@ -854,7 +869,8 @@ function normFam(d){
   d.children.forEach(k=>{if(!k.x||typeof k.x!=='object')k.x={}});
   d.cases=Object.assign({dis:false,disNote:'',pris:false,nurs:false,other:''},d.cases||{});
   if(!Array.isArray(d.att))d.att=[];
-  ['hDob','wDob','house','houseNote','tent','sector'].forEach(f=>{if(d[f]==null)d[f]=''});
+  ['hDob','wDob','house','houseNote','tent','sector','curHouse','oldHouse'].forEach(f=>{if(d[f]==null)d[f]=''});
+  if(!d.sup||typeof d.sup!=='object')d.sup={};
   if(d.house==='مبنى خارجي')d.house='مبنى';
   return d;
 }
@@ -906,27 +922,31 @@ function newId(){return Date.now()+Math.floor(Math.random()*1e6)}
 function normAr(s){return String(s||'').replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase()}
 
 /* ---------- الحالة الاجتماعية ---------- */
-const MALE_ST=['أرمل','مطلق','مهجور'],FEMALE_ST=['أرملة','مطلقة','مهجورة'];
+const MALE_ST=['أرمل','مطلق','مهجور','أعزب'],FEMALE_ST=['أرملة','مطلقة','مهجورة','عزباء'];
 const hasHusband=st=>st==='متزوج'||MALE_ST.includes(st);
 const hasWife=st=>st==='متزوج'||FEMALE_ST.includes(st);
 const adultsOf=st=>(hasHusband(st)?1:0)+(hasWife(st)?1:0);
 function mkStatus(base,g){
   if(base==='m')return 'متزوج';
+  if(base==='o')return 'أيتام';
   if(base==='a')return 'مهجورة';
   if(!g)return '';
   const M=g==='ذكر';
+  if(base==='s')return M?'أعزب':'عزباء';
   return base==='w'?(M?'أرمل':'أرملة'):base==='d'?(M?'مطلق':'مطلقة'):'مهجورة';
 }
 function baseOf(st){
+  if(st==='أعزب'||st==='عزباء')return 's';
+  if(st==='أيتام')return 'o';
   return st==='متزوج'?'m':(st==='أرمل'||st==='أرملة')?'w':(st==='مطلق'||st==='مطلقة')?'d':(st==='مهجور'||st==='مهجورة')?'a':'m';
 }
 function genderOf(st){return MALE_ST.includes(st)?'ذكر':FEMALE_ST.includes(st)?'أنثى':''}
 function tag(s){
-  const c=s==='متزوج'?'t1':(s==='أرمل'||s==='أرملة')?'t2':(s==='مطلق'||s==='مطلقة')?'t3':'t4';
+  const c=(s==='أعزب'||s==='عزباء'||s==='أيتام')?'t5':s==='متزوج'?'t1':(s==='أرمل'||s==='أرملة')?'t2':(s==='مطلق'||s==='مطلقة')?'t3':'t4';
   return `<span class="tag ${c}">${esc(s)}</span>`;
 }
-const famName=r=>r.hName||r.wName;
-const headId=r=>r.hId||r.wId;
+const famName=r=>r.hName||r.wName||((r.children&&r.children[0])?r.children[0].name:'');
+const headId=r=>r.hId||r.wId||((r.children&&r.children[0])?r.children[0].nid:'');
 const hasSector=f=>f.house==='خيمة'||f.house==='مبنى';
 const secOf=f=>hasSector(f)&&f.sector?f.sector:'-';
 const tentOf=f=>f.house==='خيمة'&&f.tent?String(f.tent):'-';
@@ -1241,7 +1261,7 @@ function cmpWarn(fams){
     const nm=famName(f)||'?',add=m=>w.push([nm,headId(f)||'',m]);
     const ids=[['هوية الزوج/رب الأسرة',f.hId],['هوية الزوجة',f.wId],...(f.children||[]).map(k=>['هوية الابن '+k.name,k.nid])];
     ids.forEach(([l,v])=>{if(!v)return;if(!validId(v))add(l+' غير صحيحة: «'+v+'» (لازم 9 أرقام)');
-      if(seen.has(v)&&seen.get(v)!==f)w.push([nm,headId(f)||'','الهوية «'+v+'» مكررة مع عائلة «'+(famName(seen.get(v))||'?')+'»']);else seen.set(v,f)});
+      if(seen.has(v)&&seen.get(v)!==f&&!(v===f.hId&&seen.get(v).hId===v))w.push([nm,headId(f)||'','الهوية «'+v+'» مكررة مع عائلة «'+(famName(seen.get(v))||'?')+'»']);else seen.set(v,f)});
     if(f.mob1&&!validPhone(f.mob1))add('رقم الجوال غير صحيح: «'+f.mob1+'»');
     [['hName',f.hName],['wName',f.wName]].forEach(([k,v])=>{if(v&&String(v).trim().split(/\s+/).length<3)add('الاسم أقل من ثلاثة أسماء: «'+v+'»')});
     [['ميلاد الزوج',f.hDob],['ميلاد الزوجة',f.wDob],...(f.children||[]).map(k=>['ميلاد '+k.name,k.dob])].forEach(([l,v])=>{if(!v)return;const a=ageOf(v);if(a==null||a<0||a>100)add(l+' غير منطقي: «'+v+'»')});
@@ -1403,6 +1423,37 @@ function show(id,btn){
   if(id==='backup'){$('totalCount').textContent=data.length;renderSecList()}
 }
 
+/* ================= بيانات اليتيم والوصي ================= */
+const ORPH_RELS=['الجد','الأب','الأم','العم','الخال','الأخ','الجدة','العمة','الخالة','الأخت','أخرى'];
+const ORPH_ST=['متزوج/ة','أرمل/ة','مطلق/ة','أعزب/عزباء'];
+const ORPH_KEYS=['cause','dec','gName','gRel','gSt','gId'];
+function orphHTML(p,o,tgt){
+  o=o||{};
+  const g=k=>tgt?`oninput="orphSet(${tgt},'${k}',this.value)" onchange="orphSet(${tgt},'${k}',this.value)"`:`id="${p}_o_${k}"`;
+  const op=(v,cur)=>`<option value="${v}" ${cur===v?'selected':''}>${v}</option>`;
+  return `<div class="secBox"><h3>🕊️ بيانات اليتيم والوصي (اختياري)</h3><div class="row3">
+    <div><label>سبب اليتم</label><select ${g('cause')}><option value="">اختر...</option>${op('شهيد',o.cause)}${op('وفاة',o.cause)}</select></div>
+    <div><label>اسم الشهيد / المتوفي</label><input type="text" maxlength="80" ${g('dec')} value="${esc(o.dec||'')}"></div>
+    <div><label>اسم الوصي</label><input type="text" maxlength="80" ${g('gName')} value="${esc(o.gName||'')}"></div>
+    <div><label>صلة الوصي باليتيم</label><input type="text" list="orphRelList" maxlength="30" placeholder="جد، أب، عم..." ${g('gRel')} value="${esc(o.gRel||'')}"></div>
+    <div><label>الحالة الاجتماعية للوصي</label><select ${g('gSt')}><option value="">اختر...</option>${ORPH_ST.map(v=>op(v,o.gSt)).join('')}</select></div>
+    <div><label>هوية الوصي</label><input type="text" inputmode="numeric" maxlength="9" ${g('gId')} value="${esc(o.gId||'')}"></div>
+  </div></div>`;
+}
+function orphOnlyNow(p){return p==='ka'?radVal('base')==='o':(p==='ek'&&ui.draft&&ui.draft._base==='o')}
+function orphSet(k,key,v){(k.orph||(k.orph={}))[key]=v}
+function orphSum(k){
+  const o=k.orph;if(!o||!ORPH_KEYS.some(x=>o[x]))return '';
+  const a=[];
+  if(o.cause)a.push('سبب اليتم: <b>'+esc(o.cause)+'</b>');
+  if(o.dec)a.push((o.cause==='شهيد'?'الشهيد':'المتوفي')+': <b>'+esc(o.dec)+'</b>');
+  if(o.gName)a.push('الوصي: <b>'+esc(o.gName)+'</b>'+(o.gRel?' ('+esc(o.gRel)+')':''));
+  if(o.gSt)a.push('حالته: '+esc(o.gSt));
+  if(o.gId)a.push('هويته: '+esc(o.gId));
+  return `<div style="flex-basis:100%;font-size:13px;color:#495057">🕊️ ${a.join(' — ')}</div>`;
+}
+const orphTxt=(k,f)=>(k&&k.status==='يتيم'&&k.orph&&k.orph[f])||'-';
+function orphReadForm(p){const o={};ORPH_KEYS.forEach(x=>{const e=$(p+'_o_'+x);o[x]=e?e.value.trim():''});return o}
 /* ================= نموذج الابن (مشترك) ================= */
 function kidFields(p){
   return `<div class="row3">
@@ -1414,28 +1465,36 @@ function kidFields(p){
   </div>
   <label>ملاحظات عن الابن (اختياري)</label><input type="text" id="${p}_note" maxlength="300">
   ${pxMk(p,{},()=>{const e=$(p+'_dob');return e?ageOf(e.value):null},true,()=>{const e=$(p+'_gender');return e?e.value:''})}
-  <div id="${p}_attWrap" class="hide">${attBoxHTML(p+'_',true)}</div>`;
+  <div id="${p}_attWrap" class="hide">${attBoxHTML(p+'_',true)}</div>
+  <div id="${p}_orphWrap" class="hide">${orphHTML(p,{},null)}</div>`;
 }
 function kidStatusChange(p){
   const w=$(p+'_attWrap');
   if(w){w.classList.toggle('hide',$(p+'_status').value!=='يتيم');attRender(p+'_')}
+  const ow=$(p+'_orphWrap');if(ow)ow.classList.toggle('hide',$(p+'_status').value!=='يتيم');
 }
 function readKid(p){
   clearBad();
   const k={id:newId(),name:$(p+'_name').value.trim(),nid:$(p+'_nid').value.trim(),dob:$(p+'_dob').value,gender:$(p+'_gender').value,status:$(p+'_status').value||'طبيعي',note:$(p+'_note').value.trim(),att:[],x:pxClone(p)};
+  if(orphOnlyNow(p))k.status='يتيم';
   const ne=nameErr(k.name,'اسم الابن');
   if(ne){fail(p+'_name',ne);return{err:1}}
   if(!validId(k.nid)){fail(p+'_nid','رقم هوية الابن لازم يكون 9 أرقام فقط');return{err:1}}
   const de=dobErr(k.dob,'تاريخ ميلاد الابن',0,100);
   if(de){fail(p+'_dob',de);return{err:1}}
   if(!k.gender){fail(p+'_gender','اختر الجنس (ذكر أو أنثى)');return{err:1}}
+  if(k.status==='يتيم'){
+    k.orph=orphReadForm(p);
+    if(k.orph.gId&&!validId(k.orph.gId)){fail(p+'_o_gId','هوية الوصي لازم تكون 9 أرقام');return{err:1}}
+  }
   if(k.status==='يتيم')k.att=(kidAtt[p]||[]).map(a=>({...a}));
   else (kidAtt[p]||[]).forEach(a=>{delete attMem[a.id]});
   return{kid:k};
 }
 function clearKid(p){
   ['name','nid','dob','gender','note'].forEach(f=>$(p+'_'+f).value='');
-  $(p+'_status').value='طبيعي';kidAtt[p]=[];kidStatusChange(p);pxReset(p);
+  if(!orphOnlyNow(p))ORPH_KEYS.forEach(x=>{const e=$(p+'_o_'+x);if(e)e.value=''});
+  $(p+'_status').value=orphOnlyNow(p)?'يتيم':'طبيعي';kidAtt[p]=[];kidStatusChange(p);pxReset(p);
 }
 function kidBadge(k){return k.status==='يتيم'?'<span class="orph">يتيم</span>':'<span class="normal">طبيعي</span>'}
 function kidsListHTML(list,removeFn,toggleFn,edit){
@@ -1447,17 +1506,18 @@ function kidsListHTML(list,removeFn,toggleFn,edit){
     ${removeFn?` <button class="btn red small" onclick="${removeFn}(${i})">حذف</button>`:''}</span>
     ${edit?`<div style="flex-basis:100%"><input type="text" maxlength="300" placeholder="ملاحظات عن الابن (اختياري)" value="${esc(k.note||'')}" oninput="ui.draft.children[${i}].note=this.value"></div>
       ${pxMk('ekd'+i,k.x||(k.x={}),()=>ageOf(k.dob),true,()=>k.gender)}
-      ${k.status==='يتيم'?`<div style="flex-basis:100%">${attBoxHTML('ekd'+i+'_',true)}</div>`:''}`
+      ${k.status==='يتيم'?`<div style="flex-basis:100%">${attBoxHTML('ekd'+i+'_',true)}</div><div style="flex-basis:100%">${orphHTML('',k.orph,'ui.draft.children['+i+']')}</div>`:''}`
     :`${k.note?`<div style="flex-basis:100%;white-space:pre-line;font-size:13px;color:#495057">📝 ${esc(k.note)}</div>`:''}
+      ${k.status==='يتيم'?(toggleFn==='toggleNewKid'?`<div style="flex-basis:100%">${orphHTML('',k.orph,'newKids['+i+']')}</div>`:orphSum(k)):''}
       ${pxSumHTML(k.x,k.dob,true,k.gender)}
       ${(k.att&&k.att.length)?`<div style="flex-basis:100%" class="attList">${attItemsHTML(k.att,'v',true)}</div>`:''}`}
   </div>`).join('');
 }
-function dupInData(ids,exceptFam){
+function dupInData(ids,exceptFam,hid){
   for(const d of data){
     if(d.id===exceptFam)continue;
     const all=[d.hId,d.wId,...d.children.map(k=>k.nid)].filter(Boolean);
-    const hit=ids.find(i=>all.includes(i));
+    const hit=ids.find(i=>all.includes(i)&&!(hid&&i===hid&&i===d.hId)); /* هوية الزوج بتتكرر (زوجة ثانية/ثالثة) */
     if(hit)return 'رقم الهوية '+hit+' مسجل من قبل ضمن عائلة: '+famName(d);
   }
   return null;
@@ -1468,6 +1528,35 @@ function dupInside(ids){
   return null;
 }
 
+/* ================= أعزب/عزباء + المعيل + تفاصيل السكن ================= */
+const SMIN_KEY='single_min_v1';
+function singleMin(){const v=parseInt(load(SMIN_KEY,40));return isNaN(v)?40:Math.max(18,Math.min(80,v))}
+function smSet(v){v=parseInt(v);if(isNaN(v))return;lsSet(SMIN_KEY,Math.max(18,Math.min(80,v)));document.querySelectorAll('.smIn').forEach(e=>e.value=singleMin())}
+function supUI(p,v,show){
+  const o=v.sup||{},m=o.mode||'self',vl=x=>esc(o[x]||'');
+  return `<div class="secBox ${show?'':'hide'}" id="${p}supBox"><h3>👤 بيانات الأعزب / العزباء — مين بصرف عليه؟</h3>
+    <div class="row3">
+      <div><label>أقل عمر لتسجيل أعزب / عزباء</label><input type="number" class="smIn" min="18" max="80" value="${singleMin()}" onchange="smSet(this.value)"></div>
+      <div><label>مصدر الإنفاق</label><select id="${p}supMode" onchange="supToggle('${p}')"><option value="self" ${m==='self'?'selected':''}>بصرف على حاله</option><option value="other" ${m==='other'?'selected':''}>بنصرف عليه شخص ثاني</option></select></div>
+    </div>
+    <div id="${p}supOther" class="row3 ${m==='other'?'':'hide'}">
+      <div><label>اسم المعيل</label><input type="text" id="${p}supName" maxlength="80" value="${vl('name')}"></div>
+      <div><label>صلة المعيل (أخ، أب، عم...)</label><input type="text" id="${p}supRel" list="orphRelList" maxlength="30" value="${vl('rel')}"></div>
+      <div><label>هوية المعيل (اختياري)</label><input type="text" id="${p}supId" inputmode="numeric" maxlength="9" value="${vl('id')}"></div>
+      <div><label>جوال المعيل (اختياري)</label><input type="text" id="${p}supMob" inputmode="numeric" maxlength="10" value="${vl('mob')}"></div>
+    </div></div>`;
+}
+function supToggle(p){const e=$(p+'supMode'),b=$(p+'supOther');if(e&&b)b.classList.toggle('hide',e.value!=='other')}
+function supRead(p){
+  const v=id=>{const e=$(p+id);return e?e.value.trim():''};
+  const mode=v('supMode')==='other'?'other':'self';
+  return mode==='other'?{mode,name:v('supName'),rel:v('supRel'),id:v('supId'),mob:v('supMob')}:{mode};
+}
+const supTxt=f=>{if(!f||baseOf(f.status)!=='s')return '-';const o=f.sup||{};return o.mode==='other'?('يُعيله: '+(o.name||'-')+(o.rel?' ('+o.rel+')':'')+(o.id?' — هوية: '+o.id:'')+(o.mob?' — جوال: '+o.mob:'')):'يصرف على نفسه'};
+function houseDetUI(p,v){
+  return `<div class="row" style="margin-top:10px"><div><label>السكن الحالي (بالتفاصيل)</label><textarea id="${p}hCur" rows="2" maxlength="300" placeholder="مثال: خيمة رقم 5 - قاطع A - بجانب...">${esc(v.curHouse||'')}</textarea></div>
+  <div><label>السكن السابق (بالتفاصيل)</label><textarea id="${p}hOld" rows="2" maxlength="300" placeholder="مثال: بيت في ... حي ... - مدينة ...">${esc(v.oldHouse||'')}</textarea></div></div>`;
+}
 /* ================= السكن + الحالات الخاصة (مشترك) ================= */
 function houseUI(p,v){
   const hv=x=>v.house===x?'checked':'';
@@ -1484,7 +1573,7 @@ function houseUI(p,v){
       <div id="${p}tentDiv" class="${v.house==='خيمة'?'':'hide'}"><label>رقم الخيمة</label><input type="text" id="${p}tent" maxlength="8" value="${esc(v.tent)}"></div>
       <div><label>القاطع</label><div style="display:flex;gap:6px"><select id="${p}sector"><option value="">اختر القاطع...</option>${(v.sector&&!SECTORS.includes(v.sector)?SECTORS.concat([v.sector]):SECTORS).map(s=>`<option value="${esc(s)}" ${v.sector===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
         <button type="button" class="btn gray small" onclick="addSectorPrompt('${p}')">➕ قاطع جديد</button></div></div>
-    </div></div>`;
+    </div>${houseDetUI(p,v)}</div>`;
 }
 function houseToggle(p){
   const h=radVal(p+'house');
@@ -1509,7 +1598,8 @@ function readCommon(p){
   return{hName:v('hName'),hId:v('hId'),hDob:v('hDob'),wName:v('wName'),wId:v('wId'),wDob:v('wDob'),
     mob1:v('mob1'),mob2:v('mob2'),payType:v('payType'),notes:v('notes'),
     house,houseNote:house==='خارجي'?v('hnote'):'',tent:house==='خيمة'?v('tent'):'',sector:(house==='خيمة'||house==='مبنى')?v('sector'):'',
-    cases:{dis:c('cDis'),disNote:c('cDis')?v('cDisNote'):'',pris:c('cPris'),nurs:c('cNurs'),other:v('cOther')}};
+    cases:{dis:c('cDis'),disNote:c('cDis')?v('cDisNote'):'',pris:c('cPris'),nurs:c('cNurs'),other:v('cOther')},
+    curHouse:v('hCur'),oldHouse:v('hOld'),sup:supRead(p)};
 }
 
 /* ================= التحقق الشامل ================= */
@@ -1518,17 +1608,27 @@ function validateFamily(f,exceptFam,p){
   const st=f.status;
   if(!st)return fail(p+'genderBox','اختر جنس رب الأسرة (ذكر أو أنثى)');
   const hH=hasHusband(st),hW=hasWife(st),m=st==='متزوج';
+  if(baseOf(st)==='s'&&f.children.length)return fail(null,'الأعزب / العزباء ما بصير عنده أبناء. احذف الأبناء أو غيّر الحالة');
+  if(st==='أيتام'){
+    if(!f.children.length)return fail(null,'أضف يتيم واحد على الأقل');
+    if(f.children.some(k=>k.status!=='يتيم'))f.children.forEach(k=>{k.status='يتيم'});
+  }
   if(hH){
     const who=m?'الزوج':'رب الأسرة';
     const e=nameErr(f.hName,'اسم '+who);if(e)return fail(p+'hName',e);
     if(!validId(f.hId))return fail(p+'hId','رقم هوية '+who+' لازم يكون 9 أرقام فقط');
-    const de=dobErr(f.hDob,'تاريخ ميلاد '+who,15,110);if(de)return fail(p+'hDob',de);
+    const de=dobErr(f.hDob,'تاريخ ميلاد '+who,baseOf(st)==='s'?singleMin():15,110);if(de)return fail(p+'hDob',baseOf(st)==='s'?(de+' — الأعزب/العزباء لازم عمره '+singleMin()+' سنة فأكثر (بتقدر تغير الحد من خانة أقل عمر)'):de);
   }
   if(hW){
     const who=m?'الزوجة':'رب الأسرة';
     const e=nameErr(f.wName,'اسم '+who);if(e)return fail(p+'wName',e);
     if(!validId(f.wId))return fail(p+'wId','رقم هوية '+who+' لازم يكون 9 أرقام فقط');
-    const de=dobErr(f.wDob,'تاريخ ميلاد '+who,15,110);if(de)return fail(p+'wDob',de);
+    const de=dobErr(f.wDob,'تاريخ ميلاد '+who,baseOf(st)==='s'?singleMin():15,110);if(de)return fail(p+'wDob',baseOf(st)==='s'?(de+' — الأعزب/العزباء لازم عمره '+singleMin()+' سنة فأكثر (بتقدر تغير الحد من خانة أقل عمر)'):de);
+  }
+  if(baseOf(st)==='s'&&f.sup&&f.sup.mode==='other'){
+    if(!f.sup.name)return fail(p+'supName','اكتب اسم المعيل');
+    if(f.sup.id&&!validId(f.sup.id))return fail(p+'supId','هوية المعيل لازم تكون 9 أرقام');
+    if(f.sup.mob&&!validPhone(f.sup.mob))return fail(p+'supMob','جوال المعيل لازم يكون 10 أرقام ويبدأ بـ 05');
   }
   if(!validPhone(f.mob1))return fail(p+'mob1','رقم الجوال لازم يكون 10 أرقام ويبدأ بـ 05');
   if(f.mob2||f.payType){
@@ -1547,18 +1647,25 @@ function validateFamily(f,exceptFam,p){
   const need=adultsOf(st)+f.children.length;
   if(f.count<need)return fail(null,'عدد الأفراد ('+f.count+') أقل من الوالدين + الأبناء المضافين ('+need+')');
   const ids=[f.hId,f.wId,...f.children.map(k=>k.nid)].filter(Boolean);
-  const d=dupInside(ids)||dupInData(ids,exceptFam);
+  const d=dupInside(ids)||dupInData(ids,exceptFam,f.hId);
   return d?fail(null,d):null;
 }
 
 /* ================= صفحة الإضافة ================= */
 let newKids=[];
 function addStatus(){const b=radVal('base');return b==='m'?'متزوج':mkStatus(b,radVal('gender'))}
-const needGender=b=>b==='w'||b==='d';
+const needGender=b=>b==='w'||b==='d'||b==='s';
 function toggleBoxes(){
   const b=radVal('base'),m=b==='m',g=needGender(b)?radVal('gender'):'';
   const st=addStatus();
   $('genderBox').classList.toggle('hide',!needGender(b));
+  if($('supBox'))$('supBox').classList.toggle('hide',b!=='s');
+  if(b==='s'&&newKids.length&&!confirm('الأعزب / العزباء ما عنده أبناء. بدك تحذف الأبناء المضافين؟')){const r=document.querySelector('input[name=base][value="'+(window._lastBase||'m')+'"]');if(r)r.checked=true;return toggleBoxes()}
+  if(b==='s'){newKids=[];renderNewKids()}
+  window._lastBase=b;
+  if($('kidsBoxAdd'))$('kidsBoxAdd').classList.toggle('hide',b==='s');
+  if($('kidsTitleAdd'))$('kidsTitleAdd').textContent=b==='o'?'🕊️ إضافة الأيتام (كل واحد ببياناته وبيانات الوصي)':'👶 إضافة الأبناء';
+  {const ks=$('ka_status');if(ks){if(b==='o'){ks.value='يتيم';ks.disabled=true}else ks.disabled=false;kidStatusChange('ka')}}
   $('genderHint').classList.toggle('hide',!needGender(b)||!!g);
   $('husbandBox').classList.toggle('hide',!hasHusband(st));
   $('wifeBox').classList.toggle('hide',!hasWife(st));
@@ -1574,7 +1681,7 @@ function kidsHint(){
   const st=addStatus(),a=adultsOf(st),n=newKids.length,c=a+n;
   $('count').value=c;
   $('countShow').textContent=c;
-  $('kidsHint').textContent='العدد = '+(a===2?'الزوجين (2)':'رب الأسرة ('+a+')')+' + الأبناء ('+n+'). بيزيد تلقائياً مع كل ابن بتضيفه.';
+  $('kidsHint').textContent=a===0?'العدد = عدد الأيتام ('+n+'). بيزيد تلقائياً مع كل يتيم بتضيفه.':'العدد = '+(a===2?'الزوجين (2)':'رب الأسرة ('+a+')')+' + الأبناء ('+n+'). بيزيد تلقائياً مع كل ابن بتضيفه.';
 }
 function openKidForm(){
   $('kidWrap').classList.remove('hide');$('kidOpenBtn').classList.add('hide');
@@ -1602,6 +1709,7 @@ function renderNewKids(){$('kidsListAdd').innerHTML=kidsListHTML(newKids,'delNew
 
 function buildAddExtras(){
   $('addHouse').innerHTML=houseUI('',{house:'',houseNote:'',tent:'',sector:''});
+  $('addSup').innerHTML=supUI('',{},radVal('base')==='s');
   $('addCases').innerHTML=casesUI('',{dis:false,disNote:'',pris:false,nurs:false,other:''});
   $('addAtt').innerHTML=attBoxHTML('');
 }
@@ -1614,7 +1722,7 @@ async function addFamily(){
     wName:hW?cm.wName:'',wId:hW?cm.wId:'',wDob:hW?cm.wDob:'',
     count:parseInt($('count').value),
     mob1:cm.mob1,mob2:cm.mob2,payType:cm.payType,notes:cm.notes,
-    house:cm.house,houseNote:cm.houseNote,tent:cm.tent,sector:cm.sector,cases:cm.cases,
+    house:cm.house,houseNote:cm.houseNote,tent:cm.tent,sector:cm.sector,cases:cm.cases,curHouse:cm.curHouse,oldHouse:cm.oldHouse,sup:baseOf(st)==='s'?cm.sup:{},
     children:newKids.slice(),att:newAtt.map(a=>({...a})),
     hx:hH?JSON.parse(JSON.stringify(addHx)):{},wx:hW?JSON.parse(JSON.stringify(addWx)):{}
   };
@@ -1643,9 +1751,18 @@ function aidLine(a,fam){
 function renderById(){
   const q=$('idQ').value.trim(),box=$('idResults');
   if(!q){box.innerHTML='';return}
-  const rows=data.filter(d=>d.hId===q||d.wId===q||d.children.some(k=>k.nid===q));
-  if(!rows.length){box.innerHTML='<div class="card"><p>ما في عائلة مسجلة بهذا الرقم.</p></div>';return}
-  box.innerHTML=rows.map(cardHTML).join('');
+  const isNum=/^[\d٠-٩]+$/.test(q);
+  let rows;
+  if(isNum){
+    const qq=q.replace(/[٠-٩]/g,c=>'٠١٢٣٤٥٦٧٨٩'.indexOf(c));
+    rows=data.filter(d=>d.hId===qq||d.wId===qq||d.children.some(k=>k.nid===qq));
+  }else{
+    const toks=normAr(q).split(/\s+/).filter(Boolean);
+    rows=data.filter(d=>{const txt=normAr([d.hName,d.wName,...(d.children||[]).map(k=>k.name)].join(' | '));return toks.every(t=>txt.includes(t))}).sort(byName(famName));
+  }
+  if(!rows.length){box.innerHTML='<div class="card"><p>ما في عائلة مسجلة بهذا الرقم أو الاسم.</p></div>';return}
+  setTimeout(()=>{if(ui.draft&&ui.draft._base==='o'){const s=$('ek_status');if(s){s.value='يتيم';s.disabled=true;kidStatusChange('ek')}}},0);
+  box.innerHTML=(rows.length>1?`<div class="sub" style="margin:6px 4px">عدد الأسر المطابقة: <b>${rows.length}</b></div>`:'')+rows.map(cardHTML).join('');
   attHydrate(box);
 }
 function cardHTML(r){
@@ -1660,6 +1777,8 @@ function cardHTML(r){
       ${r.hName?`<div>${m?'الزوج':'رب الأسرة'}: <b>${esc(r.hName)}</b> (${esc(r.hId)}) — العمر: <b>${fmtAge(ageOf(r.hDob))}</b> — ميلاد: ${esc(r.hDob)||'-'}</div>${pxSumHTML(r.hx,r.hDob,true,'ذكر')}`:''}
       ${r.wName?`<div>${m?'الزوجة':'رب الأسرة'}: <b>${esc(r.wName)}</b> (${esc(r.wId)}) — العمر: <b>${fmtAge(ageOf(r.wDob))}</b> — ميلاد: ${esc(r.wDob)||'-'}</div>${pxSumHTML(r.wx,r.wDob,true,'أنثى')}`:''}
       <div>السكن: <b>${esc(r.house)||'-'}</b>${r.house==='خيمة'?` — رقم الخيمة: <b>${esc(r.tent)}</b>`:''}${hasSector(r)?` — القاطع: <b>${esc(r.sector)}</b>`:''}${r.house==='خارجي'&&r.houseNote?` — ملاحظة السكن: <b>${esc(r.houseNote)}</b>`:''}</div>
+      ${r.curHouse?`<div>السكن الحالي: <b>${esc(r.curHouse)}</b></div>`:''}${r.oldHouse?`<div>السكن السابق: <b>${esc(r.oldHouse)}</b></div>`:''}
+      ${baseOf(r.status)==='s'?`<div>الإعالة: <b>${esc(supTxt(r))}</b></div>`:''}
       <div>عدد الأفراد: <b>${r.count}</b> &nbsp;|&nbsp; الجوال: ${esc(r.mob1)}${r.mob2?' &nbsp;|&nbsp; '+esc(payStr(r)):''}</div>
       ${r.cases.dis&&r.cases.disNote?`<div>تفاصيل الإعاقة: ${esc(r.cases.disNote)}</div>`:''}
       ${r.children.length?`<div>الأبناء:</div>${kidsListHTML(r.children,null)}`:''}
@@ -1733,7 +1852,7 @@ function editPanel(){
       ${pxMk('e_'+pre,d[pre+'x']||(d[pre+'x']={}),()=>{const e=$('e_'+pre+'Dob');return ageOf(e?e.value:d[pre+'Dob'])},true,()=>pre==='h'?'ذكر':'أنثى')}`;
   return `<div class="box"><h3>✏️ تعديل بيانات الأسرة</h3>
     <label>الحالة الاجتماعية</label>
-    <div class="radios">${rb('m','متزوج/ة')}${rb('d','مطلق/ة')}${rb('w','أرمل/ة')}${rb('a','مهجورة')}</div>
+    <div class="radios">${rb('m','متزوج/ة')}${rb('d','مطلق/ة')}${rb('w','أرمل/ة')}${rb('a','مهجورة')}${rb('s','أعزب / عزباء')}${rb('o','أيتام بدون أب وأم')}</div>
     ${!needGender(b)?'':`<div id="e_genderBox"><label>جنس رب الأسرة</label><div class="radios">${rg('ذكر')}${rg('أنثى')}</div></div>`}
     ${needGender(b)&&!st?'<p class="sub">اختر جنس رب الأسرة لتظهر خانات بياناته.</p>':''}
     ${hasHusband(st)?person('h',d.hName,d.hId,d.hDob,m?'الزوج':'رب الأسرة'):''}
@@ -1743,13 +1862,14 @@ function editPanel(){
       <div><label>رقم الجوال</label><input type="text" id="e_mob1" inputmode="numeric" maxlength="10" value="${esc(d.mob1)}"></div>
       <div><label>رقم محفظة / بنك / جوال باي (اختياري)</label><div style="display:flex;gap:6px"><select id="e_payType" style="max-width:150px"><option value="">النوع...</option>${['بنك','محفظة بال باي','جوال باي'].concat(d.payType==='جوال بديل'?['جوال بديل']:[]).map(t=>`<option value="${t}" ${d.payType===t?'selected':''}>${t}</option>`).join('')}</select><input type="text" id="e_mob2" maxlength="34" placeholder="الرقم" value="${esc(d.mob2)}"></div></div></div>
     ${houseUI('e_',d)}
+    ${supUI('e_',d,b==='s')}
     ${casesUI('e_',d.cases)}
-    <div class="kidsBox"><h3>👶 الأبناء</h3>
+    ${b==='s'?'':`<div class="kidsBox"><h3>${b==='o'?'🕊️ الأيتام':'👶 الأبناء'}</h3>
       ${kidsListHTML(d.children,'delEditKid','toggleEditKid',true)}
       <p class="sub" style="margin-top:12px">إضافة ابن جديد:</p>
       ${kidFields('ek')}
       <button class="btn gray small" style="margin-top:10px" onclick="addEditKid()">➕ إضافة الابن</button>
-    </div>
+    </div>`}
     ${attBoxHTML('e_')}
     <label>ملاحظات</label><textarea id="e_notes" rows="3">${esc(d.notes)}</textarea>
     <div class="acts" style="margin-top:16px">
@@ -1766,11 +1886,18 @@ function syncDraft(){
   ['hName','hId','hDob','wName','wId','wDob'].forEach(k=>{if($('e_'+k))d[k]=cm[k]});
   d.mob1=cm.mob1;d.mob2=cm.mob2;d.payType=cm.payType;
   if($('e_notes'))d.notes=$('e_notes').value;
-  d.house=cm.house;d.houseNote=cm.houseNote;d.tent=cm.tent;d.sector=cm.sector;d.cases=cm.cases;
+  d.house=cm.house;d.houseNote=cm.houseNote;d.tent=cm.tent;d.sector=cm.sector;d.cases=cm.cases;d.curHouse=cm.curHouse;d.oldHouse=cm.oldHouse;d.sup=cm.sup;
   d.status=mkStatus(d._base,d._gender);
+  if(baseOf(d.status)!=='s')d.sup={};
   d.count=draftCount(d);
 }
-function editStatusChange(){syncDraft();renderById()}
+function editStatusChange(){
+  const nb=radVal('e_base');
+  if(nb==='s'&&ui.draft.children.length&&!confirm('الأعزب / العزباء ما عنده أبناء. بدك تحذف الأبناء الحاليين؟')){renderById();return}
+  syncDraft();
+  if(ui.draft._base==='s')ui.draft.children=[];
+  renderById();
+}
 function addEditKid(){
   syncDraft();
   const r=readKid('ek');
@@ -1878,7 +2005,7 @@ async function delFamily(id){
 }
 
 /* ================= محرك الجداول (شاشة + PDF + Excel) ================= */
-const ST_FILL={'متزوج':'D0EBFF','أرمل':'E5DBFF','أرملة':'E5DBFF','مطلق':'FFE8CC','مطلقة':'FFE8CC','مهجور':'C5F6FA','مهجورة':'C5F6FA'};
+const ST_FILL={'متزوج':'D0EBFF','أرمل':'E5DBFF','أرملة':'E5DBFF','مطلق':'FFE8CC','مطلقة':'FFE8CC','أعزب':'FFF3BF','عزباء':'FFF3BF','أيتام':'FFC9C9','مهجور':'C5F6FA','مهجورة':'C5F6FA'};
 function kidLine(k){return k.name+' ('+k.gender+'، '+ageOf(k.dob)+' س'+(k.status==='يتيم'?'، يتيم':'')+')'}
 const gBadge=g=>`<span class="g ${g==='ذكر'?'m':'f'}">${g}</span>`;
 const notesH=r=>`<div style="white-space:pre-line;text-align:right">${esc(r.notes)||'-'}</div>`;
@@ -1905,6 +2032,9 @@ const FAMCOLS=[
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r)},
  {k:'sec',l:'القاطع',v:r=>secOf(r)},
  {k:'hnote',l:'ملاحظة السكن',v:r=>r.houseNote||'-',c:'wide'},
+ {k:'hcur',l:'السكن الحالي (تفاصيل)',v:r=>r.curHouse||'-',c:'wide'},
+ {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.oldHouse||'-',c:'wide'},
+ {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r),c:'wide'},
  {k:'cases',l:'الحالات الخاصة',v:r=>casesList(r).map(c=>c.t).join('، ')||'-',
    h:r=>casesList(r).map(c=>`<span class="cs ${c.c}">${esc(c.t)}</span>`).join('')||'-'},
  {k:'notes',l:'ملاحظات',v:r=>r.notes||'-',h:notesH,c:'wide'}
@@ -1918,6 +2048,12 @@ const KIDCOLS=[
  {k:'age',l:'العمر',v:r=>ageOf(r.k.dob),c:'num'},
  {k:'gen',l:'الجنس',v:r=>r.k.gender,h:r=>gBadge(r.k.gender)},
  {k:'kst',l:'حالة الابن',v:r=>r.role==='الأب'||r.role==='الأم'?'-':r.k.status,h:r=>r.role==='الأب'||r.role==='الأم'?'-':kidBadge(r.k),x:r=>r.k.status==='يتيم'?({fill:'E03131',color:'FFFFFF'}):({fill:'D3F9D8'})},
+ {k:'oc',l:'سبب اليتم',v:r=>orphTxt(r.k,'cause'),c:'nw'},
+ {k:'od',l:'اسم الشهيد / المتوفي',v:r=>orphTxt(r.k,'dec'),c:'nm'},
+ {k:'og',l:'اسم الوصي',v:r=>orphTxt(r.k,'gName'),c:'nm'},
+ {k:'orl',l:'صلة الوصي',v:r=>orphTxt(r.k,'gRel'),c:'nw'},
+ {k:'ost',l:'الحالة الاجتماعية للوصي',v:r=>orphTxt(r.k,'gSt'),c:'nw'},
+ {k:'oid',l:'هوية الوصي',v:r=>orphTxt(r.k,'gId'),c:'nw'},
  {k:'knote',l:'ملاحظات',v:r=>[r.k.note,r.k.x&&r.k.x.note].filter(Boolean).join(' | ')||'-',c:'wide'},
  {k:'sick',l:'الحالة الصحية',v:r=>hlthStr(r.k.x,false),x:r=>(r.k.x&&r.k.x.inj)?({fill:'FFD8A8'}):(r.k.x&&r.k.x.sick)?({fill:'FFE3E3'}):({})},
  {k:'dis',l:'المرض',v:r=>(r.k.x&&r.k.x.sick&&(r.k.x.dis||[]).join('، '))||'-',c:'wide'},
@@ -1934,7 +2070,10 @@ const KIDCOLS=[
  {k:'house',l:'نوع السكن',v:r=>r.f.house||'-',c:'nw'},
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r.f)},
  {k:'sec',l:'القاطع',v:r=>secOf(r.f)},
- {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'}
+ {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'},
+ {k:'hcur',l:'السكن الحالي (تفاصيل)',v:r=>r.f.curHouse||'-',c:'wide'},
+ {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.f.oldHouse||'-',c:'wide'},
+ {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r.f),c:'wide'}
 ];
 const SPECCOLS=[...FAMCOLS.slice(0,3),
  {k:'reason',l:'التفاصيل / السبب',v:r=>specReason(r,$('spType').value)||'-',c:'wide'},
@@ -1952,7 +2091,10 @@ const SPECECOLS=[
  {k:'house',l:'نوع السكن',v:r=>r.f.house||'-',c:'nw'},
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r.f)},
  {k:'sec',l:'القاطع',v:r=>secOf(r.f)},
- {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'}
+ {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'},
+ {k:'hcur',l:'السكن الحالي (تفاصيل)',v:r=>r.f.curHouse||'-',c:'wide'},
+ {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.f.oldHouse||'-',c:'wide'},
+ {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r.f),c:'wide'}
 ];
 const aidDetails=a=>a.kind==='cash'
   ?(a.value+' '+a.cur+' لكل أسرة'+(a.total?(' — قيمة المشروع كامل: '+a.total+' '+a.cur):''))
@@ -2034,7 +2176,10 @@ const SPECPCOLS=[
  {k:'house',l:'نوع السكن',v:r=>r.f.house||'-',c:'nw'},
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r.f)},
  {k:'sec',l:'القاطع',v:r=>secOf(r.f)},
- {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'}
+ {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'},
+ {k:'hcur',l:'السكن الحالي (تفاصيل)',v:r=>r.f.curHouse||'-',c:'wide'},
+ {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.f.oldHouse||'-',c:'wide'},
+ {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r.f),c:'wide'}
 ];
 function specPRows(type){
   const sec=$('spSector').value,dsel=$('spDis')?$('spDis').value:'',osel=$('spOther').value,out=[];
@@ -2114,9 +2259,52 @@ const TABLES={
  repN:{cols:REPNCOLS,box:'pick_rep',el:'repTable',file:'تقرير_غير_المستفيدين',manage:true,rows:()=>repRowsN(),render:()=>renderRep()}
 };
 const tTitle={};   /* نص عنوان كل كشف (للـ PDF وExcel) */
+/* ---------- استبعاد أسماء من الكشف (مؤقت، بدون حذف من البيانات) ---------- */
+const EXC={},EXCK={};
+function rowKey(r){
+  const o=[];
+  for(const k in r){const v=r[k];if(v==null)continue;
+    if(typeof v!=='object')o.push(k+'='+v);
+    else if(!Array.isArray(v))['id','nid','k','n','name'].forEach(q=>{if(v[q]!=null&&typeof v[q]!=='object')o.push(k+'.'+q+'='+v[q])})}
+  return o.join('|');
+}
+function excLabel(t,r,i){
+  const T=TABLES[t],c=T.cols.find(c=>['name','hName','head','nm','pn','kname'].includes(c.k))||T.cols[1]||T.cols[0];
+  try{return String(c.v(r,i)||'').replace(/\n.*/s,'')||('سجل '+(i+1))}catch(e){return 'سجل '+(i+1)}
+}
+[['filtered','fam'],['matchedKids','kid'],['elderRows','specE'],['specRows','spec'],['specPRows','specP'],['repRowsB','repB'],['repRowsG','repG'],['repRowsN','repN'],['prjRows','prj'],['prjBenRows','prjB']].forEach(([fn,t])=>{
+  const o=window[fn];if(typeof o!=='function')return;
+  window[fn]=function(){const rs=o.apply(this,arguments);
+    if(!hdr.exc||!EXC[t]||!Object.keys(EXC[t]).length)return rs;
+    return rs.filter(r=>!(rowKey(r) in EXC[t]))};
+});
+function excAdd(t,i){
+  const r=(EXCK[t]||[])[i];if(!r)return;
+  (EXC[t]||(EXC[t]={}))[r.k]=r.l;TABLES[t].render();
+}
+function excDel(t,k){if(EXC[t]){if(k==null)EXC[t]={};else delete EXC[t][decodeURIComponent(k)]}TABLES[t].render()}
+function excStrip(t){
+  const e=EXC[t];if(!hdr.exc||!e)return '';
+  const ks=Object.keys(e);if(!ks.length)return '';
+  return `<div class="noprint" style="background:#fff3bf;border:1px solid #f0c36d;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:13px">🚫 مستبعدون من الكشف (${ks.length}): ${ks.map(k=>`<span class="pxChip">${esc(e[k])}<button type="button" title="إرجاع للكشف" onclick="excDel('${t}','${encodeURIComponent(k).replace(/'/g,'%27')}')">↩</button></span>`).join(' ')} <button class="btn gray small" onclick="excDel('${t}')">↩ إرجاع الكل</button></div>`;
+}
 
 let colOff=load(COLKEY,{});if(!colOff||typeof colOff!=='object'||Array.isArray(colOff))colOff={};
 if(colOff.repG===undefined)colOff.repG=colOffDef.repG.slice();
+(function(){ /* أعمدة السكن والإعالة الجديدة: مخفية افتراضياً */
+  try{
+    if(localStorage.getItem('cols_mig_hs1'))return;
+    Object.keys(TABLES).forEach(t=>{if(TABLES[t].cols.some(c=>c.k==='hcur')){const a=colOff[t]||(colOff[t]=[]);['hcur','hold','sup'].forEach(k=>{if(!a.includes(k))a.push(k)})}});
+    localStorage.setItem(COLKEY,JSON.stringify(colOff));localStorage.setItem('cols_mig_hs1','1');
+  }catch(e){}
+})();
+(function(){ /* أعمدة اليتيم: مخفية افتراضياً */
+  try{
+    if(localStorage.getItem('cols_mig_orph1'))return;
+    const a=colOff.kid||(colOff.kid=[]);['oc','od','og','orl','ost','oid'].forEach(k=>{if(!a.includes(k))a.push(k)});
+    localStorage.setItem(COLKEY,JSON.stringify(colOff));localStorage.setItem('cols_mig_orph1','1');
+  }catch(e){}
+})();
 (function(){ /* أعمدة تاريخ الميلاد الجديدة: مخفية افتراضياً وتقدر تفعلها من "اختر الأعمدة" */
   try{
     if(localStorage.getItem('cols_mig_dob1'))return;
@@ -2136,6 +2324,14 @@ function renderPick0(t){
   $(T.box).innerHTML=`<details class="pdfCols"><summary>🧩 اختر الأعمدة اللي بدك تظهر (بتنطبق على الشاشة وPDF وExcel)</summary>
     <div class="colsList">${T.cols.map(c=>`<label><input type="checkbox" ${colOn(t,c.k)?'checked':''} onchange="colToggle('${t}','${c.k}',this.checked)">${c.l}</label>`).join('')}</div>
     <div class="acts"><button class="btn gray small" onclick="colsAll('${t}',true)">تحديد الكل</button> <button class="btn gray small" onclick="colsAll('${t}',false)">إلغاء الكل</button></div>
+    <div class="hdrOpts" style="margin-top:4px"><label><input type="checkbox" ${hdr.ft?'checked':''} onchange="hdrSet('ft',this.checked)">تذييل أسفل الكشف (مدير المخيم + الجوالات)</label>
+      <label>مكانه: <select onchange="hdrSet('ftSide',this.value)"><option value="r" ${hdr.ftSide==='r'?'selected':''}>يمين</option><option value="l" ${hdr.ftSide==='l'?'selected':''}>يسار</option><option value="c" ${hdr.ftSide==='c'?'selected':''}>وسط</option></select></label></div>
+    <div class="row3"><div><label>المسمى</label><input type="text" maxlength="60" value="${esc(hdr.ftTitle)}" onchange="hdrSet('ftTitle',this.value.trim())"></div>
+      <div><label>الاسم</label><input type="text" maxlength="60" value="${esc(hdr.ftName)}" onchange="hdrSet('ftName',this.value.trim())"></div>
+      <div><label>جوال للتواصل</label><input type="text" maxlength="10" inputmode="numeric" value="${esc(hdr.ftP1)}" onchange="hdrSet('ftP1',this.value.trim())"></div>
+      <div><label>جوال ثاني</label><input type="text" maxlength="10" inputmode="numeric" value="${esc(hdr.ftP2)}" onchange="hdrSet('ftP2',this.value.trim())"></div>
+      <div style="grid-column:1/-1"><label>سطر إضافي أسفل الكشف (اختياري)</label><input type="text" maxlength="150" value="${esc(hdr.ftNote)}" onchange="hdrSet('ftNote',this.value.trim())"></div></div>
+    <div class="hdrOpts"><label><input type="checkbox" ${hdr.exc?'checked':''} onchange="hdrSet('exc',this.checked)">🚫 إظهار خانة "استبعاد" بجانب كل اسم (لإلغاء أسماء من الكشف فقط بدون حذفها)</label></div>
     <p class="sub">الاختيار بيتحفظ لحاله. ملف Excel وPDF بيطلعوا بنفس الأعمدة المختارة.</p></details>`;
 }
 function colsSaveOff(){lsSet(COLKEY,colOff)}
@@ -2153,14 +2349,15 @@ function colsAll(t,on){
 function tblHTML(t,rows){
   const T=TABLES[t],cols=activeCols(t);
   if(!cols.length)return '<p class="empty">اختر عمود واحد على الأقل من "اختر الأعمدة".</p>';
-  if(!rows.length)return '<p class="empty">لا توجد نتائج.</p>';
+  if(!rows.length)return excStrip(t)+'<p class="empty">لا توجد نتائج.</p>';
+  const ex=!!hdr.exc;if(ex)EXCK[t]=rows.map((r,i)=>({k:rowKey(r),l:excLabel(t,r,i)}));
   const pf=cols.length>14?'8.5px':cols.length>11?'9.5px':'11px';
-  let h=`<div class="tblWrap"><table class="dt" style="--pf:${pf}"><thead><tr>`+cols.map(c=>`<th>${c.l}</th>`).join('')+((T.act||T.manage)?'<th class="noprint">إدارة</th>':'')+'</tr></thead><tbody>';
+  let h=`<div class="tblWrap"><table class="dt" style="--pf:${pf}"><thead><tr>`+cols.map(c=>`<th>${c.l}</th>`).join('')+((T.act||T.manage)?'<th class="noprint">إدارة</th>':'')+(ex?'<th class="noprint">استبعاد</th>':'')+'</tr></thead><tbody>';
   rows.forEach((r,i)=>{
     h+='<tr>'+cols.map(c=>`<td class="${c.c||''}">${c.h?c.h(r,i):esc(c.v(r,i)).replace(/\n/g,'<br>')}</td>`).join('')+
-      (T.act?`<td class="noprint">${T.act(r)}</td>`:(T.manage?`<td class="noprint"><button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button></td>`:''))+'</tr>';
+      (T.act?`<td class="noprint">${T.act(r)}</td>`:(T.manage?`<td class="noprint"><button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button></td>`:''))+(ex?`<td class="noprint"><button class="btn red small" title="استبعاد من الكشف" onclick="excAdd('${t}',${i})">🚫</button></td>`:'')+'</tr>';
   });
-  return h+'</tbody></table></div>';
+  return excStrip(t)+h+'</tbody></table></div>';
 }
 function manage(id){
   const r=data.find(d=>d.id===id);if(!r)return;
@@ -2249,6 +2446,8 @@ function exportXlsx(t){
   const aoa=hr.map(k=>[hv[k]]).concat([cols.map(c=>c.l)]);
   for(let i=0;i<H;i++)while(aoa[i].length<n)aoa[i].push('');
   rows.forEach((r,i)=>aoa.push(cols.map(c=>{const v=c.v(r,i);return v==null?'':v})));
+  const FT=ftLines();
+  if(FT.length){aoa.push(cols.map(()=>''));FT.forEach(()=>aoa.push(cols.map(()=>'')))}
   const ws=XLSX.utils.aoa_to_sheet(aoa);
   const thin=c=>({style:'thin',color:{rgb:c}}),med=c=>({style:'medium',color:{rgb:c}});
   const box=(f,c)=>({top:f(c),bottom:f(c),left:f(c),right:f(c)});
@@ -2292,6 +2491,19 @@ function exportXlsx(t){
   });
   ws['!cols']=widths;ws['!rows']=heights;
   ws['!merges']=hr.map((k,r)=>({s:{r,c:0},e:{r,c:n-1}}));
+  if(FT.length){
+    const base=H+1+rows.length,k=Math.min(n,Math.max(3,Math.ceil(n/3)));
+    const c0=hdr.ftSide==='r'?0:hdr.ftSide==='c'?Math.floor((n-k)/2):n-k,c1=c0+k-1;
+    heights.push({hpx:14});
+    FT.forEach((t,i)=>{
+      const r=base+1+i,bold=i<2&&hdr.ftTitle&&hdr.ftName;
+      for(let c=c0;c<=c1;c++){
+        ws[cell(r,c)]={t:'s',v:c===c0?t:'',s:{font:font({sz:12,bold:!!bold}),alignment:al,border:i===0?{top:med('000000')}:undefined}};
+      }
+      ws['!merges'].push({s:{r,c:c0},e:{r,c:c1}});
+      heights.push({hpx:24});
+    });
+  }
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'الكشف');
   wb.Workbook={Views:[{RTL:true}]};
@@ -2299,7 +2511,7 @@ function exportXlsx(t){
 }
 
 /* ================= الكشوفات ================= */
-const ST_NAMES={m:'متزوج',w:'أرمل/ة',d:'مطلق/ة',a:'مهجورة'};
+const ST_NAMES={m:'متزوج',w:'أرمل/ة',d:'مطلق/ة',a:'مهجورة',s:'أعزب/عزباء',o:'أيتام بدون والدين'};
 const fsSel=()=>[...document.querySelectorAll('.fsChk:checked')].map(c=>c.value);
 function fsClear(){document.querySelectorAll('.fsChk').forEach(c=>c.checked=false);renderList()}
 const headGender=d=>d.status==='متزوج'?'ذكر':genderOf(d.status);
@@ -2884,7 +3096,7 @@ function fixPhone(v){
 }
 function normStatus(v){
   const t=toStr(v).replace(/\s/g,'');
-  return({'متزوج':'متزوج','متزوجة':'متزوج','أرمل':'أرمل','ارمل':'أرمل','أرملة':'أرملة','ارملة':'أرملة','مطلق':'مطلق','مطلقة':'مطلقة','مهجورة':'مهجورة'})[t]||'';
+  return({'متزوج':'متزوج','متزوجة':'متزوج','أرمل':'أرمل','ارمل':'أرمل','أرملة':'أرملة','ارملة':'أرملة','مطلق':'مطلق','مطلقة':'مطلقة','مهجورة':'مهجورة','أعزب':'أعزب','اعزب':'أعزب','عزباء':'عزباء','عزبا':'عزباء'})[t]||'';
 }
 function normGender(v){
   const t=toStr(v);
@@ -3008,7 +3220,7 @@ function xlPreview(){
         let e=famCheck(f);
         if(!e){
           const ids=[f.hId,f.wId,...f.children.map(k=>k.nid)].filter(Boolean);
-          e=dupInside(ids)||dupInData(ids,null)||(ids.find(i=>seen.has(i))?'رقم هوية مكرر داخل الملف':null);
+          e=dupInside(ids)||dupInData(ids,null,f.hId)||(ids.find(i=>seen.has(i)&&i!==f.hId)?'رقم هوية مكرر داخل الملف':null);
           if(!e)ids.forEach(i=>seen.add(i));
         }
         if(e)errs.push(where+e);else{delete f._row;ok.push(f)}
@@ -3069,7 +3281,7 @@ async function backupRestore(){
       if(!x||!(x.hId||x.wId)||!(x.hName||x.wName)){skipped++;continue}
       normFam(x);
       const ids=[x.hId,x.wId,...x.children.map(k=>k.nid)].filter(Boolean);
-      const ex=data.find(d=>ids.some(i=>[d.hId,d.wId,...d.children.map(k=>k.nid)].includes(i)));
+      const ex=data.find(d=>{const o=[d.wId,...d.children.map(k=>k.nid)].filter(Boolean);return ids.some(i=>i!==x.hId&&o.includes(i))||(x.hId&&o.includes(x.hId))||(x.hId&&x.hId===d.hId&&(x.wId||'')===(d.wId||''))});
       const oldId=x.id;
       if(ex){if(oldId!=null)idMap[oldId]=ex.id;skipped++;continue}
       x.id=newId();
@@ -3352,7 +3564,23 @@ function whoOut(t,fams){
 /* ================= رأس الكشف (الشعار / اسم المخيم / العدد / التاريخ) ================= */
 const LOGO_DATA='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAMAAAAKE/YAAAADAFBMVEU1ajJhb2ZTW1ViYWOjpqaSl5LO1szZ4NozMzMtLS05ZSE9ZSlTVjldXV10pG+epqCLiorKy8rS0tIkJCQuLi4/P0EAf38zmTNBPz9/P399f4B8oVN///+CpT6kv1y90Xy8yry+0KW8x8DwYF/8sT7ygH/2oJ//v//Av8DeyHPExLD8/PsAAAADBAIQFg/56czx1rHU2NTo6Of+/v7nAwIoKCY0NzP82IsONxALJw0VRhOzt7JVV1MDWSV1d3MNZDFHSEbHyMeUmJP99NaIiIdnaGf7p0Wnp6cpVRrpy6b9yG785LABUxwyWCjUt5L8tlOyxrUjShovRy/pxJdOdyk4ZCdsl3hOZ1CSp5PSyK+ShnDX4tn8/PxxiHGulni0p479/fxwZlT9/fx2pYn9/fz90Xv84ppUd1Hx2s38/PwvdkpEaSxMRTmHe2pahCnHq4goIxw3ZRhkW01slTNkiTKXuaX9/fxQimaSspiom4VJdxvivJLd5+HqJyf6oTz2pqZak3CKdVvpFhZDPDGkimvGvKhIhFnU1Lj6nTV+fn78u2LqNjbtR0b5x8e70sSGp0/xaWj4t7f99K1mh1Gtt47Xw5fxdXTyhoX0lpYqa0JLVzNzl0tyc1WQlHqqqqruV1cgHBd0mYFVVVVXhB2MqW/9wl09V0FeeGK/v7+uxJHFonsEBAQ6gVaatXC2ona6y8EZRSIjPBt+hoDs6esDAwMCAgJBbhthVT6pung8PDxeZmGdwKzKysro6OgeNSEAVQAocDeVh12en6CepqKsw3DK2pHe3+DW4qUEBAQJEw0eIyM/PwA+Q0AqUxsqVhxVVQB8ozZqoX6CbVOVtVDAnnfItnjS0tLT2tQDAwMAAAAMFgwQOhQPOQ4AfwAkJCQ2WCM1YCBGRkZYWFhVZldVqlVmZmZpaWl/fwCBf4CCl1Gup1eyt7OysrK+v8Da2trQ4ZTtIB70n6Dg3+D/8Jz//7///8wWFhYTExEZGRkAPwAPNBQASAAcSRUfVRofbEEWcDylcdkyAAABAHRSTlMTIVvvIHopnmqgQOXlrBqnxGbUMdH/AgWVBP//Av///43/Sf////8E//8N/gD+/v///v4F//7+//7+/v7+//7//v7+//7+//7+/////v7///7////+/v/+/v7//3L+//8t/7D/Sv///v/Q//7///7///7//v//jP////7//////////////////wP////////////+///////+//7//wP///wD//////8E//+w/////////xAzbf///wX//wYl/wP//////////9O3/wT/OasD////////F7BMkzZlmgIcqqcvNrIDB6UC////kar/xP//////BAUXdo0EMQejOf//W+zTdwAAL8RJREFUeNrFfQeA29aVLbNp29vvvVcQAAEZEAlgMAAIGGQ4YFiHTSRFSdaMpjeVkeRYsto6sSxbJbZVXGLHju04Lqmbtult0+u2v/Vv7+X3eu97AAlyOJpixXlORhySQx5cnHtuee8BkeitGDtgBI927963b98uf8DD3bt7rwWPXuGI3DK8O3bv23Voz54DzJpxYM+eQ7v27X7vLUMeuRWId+zYd2gY2kHsh/b5b3+FuCOvDDIx8KEN8YaQH9q3e4f/p68+aPq1u3ftGQ5OJGP4a3t27Y6+ItyR7UImiNeYWFAt3dFkWfKHLGuObqnmIPwDPu5XETShxb5+Gwum5cgcu87gZMdWhX5779uxXdiR7fGi38iCqxvr4u1DbgmD5t4OSyLbsfLusJHNfsASEsK2Lct1Lcu2dceQpT7guhk29+7tWDvyiiCLqt5FxEmabp0RhnmeYFZ1TeoemhTGvR3Yka1CDlHZ/APZh/GYobvCRmoXJpFhCyFybxV2ZNtWdgMEsh64mDj5wF13PXC+TypEIZfL3Xe8B9w/NZymbtvaka1g3nGoazVb8ilq01Mtnn/o/nvvvf/BuybXinMjt/fE2bPjuUbgBP4Jkt3uew/t2ArqyBbM3FUMQadGlv+AIn7gwXvvvu1tb79r8ibcOHhidGRq/CA9J6pDj1m2xK6SbMHYkU1j7jJDcChkTcVvFO969C9uu+1tD01uHMJzJ0aVkam9BHfDNahTWiGObBb15kDDydsVcNTmqALgd0/e9ejdgPhBcbOpx8GzI13cqkY+Se5yexd8zS0DHTazRc6rZCPMB+6/87bb7r7/PLOVIewdHRsbPXsQP8B06Ckzt2jsyGbMHA3MrBr0lMI3ig/dexvSYhNGVs2+X48fmRoZA3OjX5oacWe9a+zoZowd2Qw1fNEQdfINs4Bz8sE7EfJdm7Gty8qDR3YQYY+O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';
 const HDRKEY='hdr_v1';
-let hdr=Object.assign({camp:true,title:true,count:true,date:true,logo:'r'},load(HDRKEY,{}));
+let hdr=Object.assign({camp:true,title:true,count:true,date:true,logo:'r',
+  ft:true,ftTitle:'مدير مخيم فلسطين',ftName:'محمود موسى عبد الشامي',ftP1:'0593505457',ftP2:'0597230992',ftNote:'',ftSide:'l',exc:false},load(HDRKEY,{}));
+function ftLines(){
+  if(!hdr.ft)return [];
+  const o=[];
+  if(hdr.ftTitle)o.push(hdr.ftTitle);
+  if(hdr.ftName)o.push(hdr.ftName);
+  if(hdr.ftP1)o.push('جوال للتواصل: '+hdr.ftP1);
+  if(hdr.ftP2)o.push('جوال ثاني: '+hdr.ftP2);
+  if(hdr.ftNote)o.push(hdr.ftNote);
+  return o;
+}
+function ftHTML(){
+  const L=ftLines();if(!L.length)return '';
+  const side=hdr.ftSide==='r'?'flex-start':hdr.ftSide==='c'?'center':'flex-end';
+  return `<div class="campFt" style="justify-content:${side}"><div class="ftBox">${L.map((t,i)=>`<div class="${i<2&&hdr.ftTitle&&hdr.ftName?'ftB':''}">${esc(t)}</div>`).join('')}</div></div>`;
+}
 function renderCampHdr(){
   const lg=`<img class="lg" src="${LOGO_DATA}" alt="">`;
   const right=hdr.logo==='r'||hdr.logo==='b',left=hdr.logo==='l'||hdr.logo==='b',mid=hdr.logo==='c';
@@ -3360,6 +3588,7 @@ function renderCampHdr(){
   if(mid)h=`<div class="campHead mid"><span class="cn">${hdr.camp?esc(CAMP):''}</span>${lg}</div>`;
   else if(hdr.camp||right||left)h=`<div class="campHead">${right?lg:''}${hdr.camp?`<span class="cn">${esc(CAMP)}</span>`:'<span class="cn"></span>'}${left?lg:''}</div>`;
   document.querySelectorAll('[data-camphdr]').forEach(el=>el.innerHTML=h);
+  document.querySelectorAll('[data-campftr]').forEach(el=>el.innerHTML=ftHTML());
   document.body.classList.toggle('nocount',!hdr.count);
 }
 function hdrLine(id,title,n){
