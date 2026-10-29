@@ -869,7 +869,7 @@ function normFam(d){
   d.children.forEach(k=>{if(!k.x||typeof k.x!=='object')k.x={}});
   d.cases=Object.assign({dis:false,disNote:'',pris:false,nurs:false,other:''},d.cases||{});
   if(!Array.isArray(d.att))d.att=[];
-  ['hDob','wDob','house','houseNote','tent','sector','curHouse','oldHouse'].forEach(f=>{if(d[f]==null)d[f]=''});
+  ['hDob','wDob','house','houseNote','tent','sector','oldHouse'].forEach(f=>{if(d[f]==null)d[f]=''});
   if(!d.sup||typeof d.sup!=='object')d.sup={};
   if(d.house==='مبنى خارجي')d.house='مبنى';
   return d;
@@ -1554,8 +1554,7 @@ function supRead(p){
 }
 const supTxt=f=>{if(!f||baseOf(f.status)!=='s')return '-';const o=f.sup||{};return o.mode==='other'?('يُعيله: '+(o.name||'-')+(o.rel?' ('+o.rel+')':'')+(o.id?' — هوية: '+o.id:'')+(o.mob?' — جوال: '+o.mob:'')):'يصرف على نفسه'};
 function houseDetUI(p,v){
-  return `<div class="row" style="margin-top:10px"><div><label>السكن الحالي (بالتفاصيل)</label><textarea id="${p}hCur" rows="2" maxlength="300" placeholder="مثال: خيمة رقم 5 - قاطع A - بجانب...">${esc(v.curHouse||'')}</textarea></div>
-  <div><label>السكن السابق (بالتفاصيل)</label><textarea id="${p}hOld" rows="2" maxlength="300" placeholder="مثال: بيت في ... حي ... - مدينة ...">${esc(v.oldHouse||'')}</textarea></div></div>`;
+  return `<div style="margin-top:10px"><label>السكن السابق (بالتفاصيل)</label><textarea id="${p}hOld" rows="2" maxlength="300" placeholder="مثال: بيت في ... حي ... - مدينة ...">${esc(v.oldHouse||'')}</textarea></div>`;
 }
 /* ================= السكن + الحالات الخاصة (مشترك) ================= */
 function houseUI(p,v){
@@ -1599,7 +1598,7 @@ function readCommon(p){
     mob1:v('mob1'),mob2:v('mob2'),payType:v('payType'),notes:v('notes'),
     house,houseNote:house==='خارجي'?v('hnote'):'',tent:house==='خيمة'?v('tent'):'',sector:(house==='خيمة'||house==='مبنى')?v('sector'):'',
     cases:{dis:c('cDis'),disNote:c('cDis')?v('cDisNote'):'',pris:c('cPris'),nurs:c('cNurs'),other:v('cOther')},
-    curHouse:v('hCur'),oldHouse:v('hOld'),sup:supRead(p)};
+    oldHouse:v('hOld'),sup:supRead(p)};
 }
 
 /* ================= التحقق الشامل ================= */
@@ -1722,7 +1721,7 @@ async function addFamily(){
     wName:hW?cm.wName:'',wId:hW?cm.wId:'',wDob:hW?cm.wDob:'',
     count:parseInt($('count').value),
     mob1:cm.mob1,mob2:cm.mob2,payType:cm.payType,notes:cm.notes,
-    house:cm.house,houseNote:cm.houseNote,tent:cm.tent,sector:cm.sector,cases:cm.cases,curHouse:cm.curHouse,oldHouse:cm.oldHouse,sup:baseOf(st)==='s'?cm.sup:{},
+    house:cm.house,houseNote:cm.houseNote,tent:cm.tent,sector:cm.sector,cases:cm.cases,oldHouse:cm.oldHouse,sup:baseOf(st)==='s'?cm.sup:{},
     children:newKids.slice(),att:newAtt.map(a=>({...a})),
     hx:hH?JSON.parse(JSON.stringify(addHx)):{},wx:hW?JSON.parse(JSON.stringify(addWx)):{}
   };
@@ -1777,7 +1776,7 @@ function cardHTML(r){
       ${r.hName?`<div>${m?'الزوج':'رب الأسرة'}: <b>${esc(r.hName)}</b> (${esc(r.hId)}) — العمر: <b>${fmtAge(ageOf(r.hDob))}</b> — ميلاد: ${esc(r.hDob)||'-'}</div>${pxSumHTML(r.hx,r.hDob,true,'ذكر')}`:''}
       ${r.wName?`<div>${m?'الزوجة':'رب الأسرة'}: <b>${esc(r.wName)}</b> (${esc(r.wId)}) — العمر: <b>${fmtAge(ageOf(r.wDob))}</b> — ميلاد: ${esc(r.wDob)||'-'}</div>${pxSumHTML(r.wx,r.wDob,true,'أنثى')}`:''}
       <div>السكن: <b>${esc(r.house)||'-'}</b>${r.house==='خيمة'?` — رقم الخيمة: <b>${esc(r.tent)}</b>`:''}${hasSector(r)?` — القاطع: <b>${esc(r.sector)}</b>`:''}${r.house==='خارجي'&&r.houseNote?` — ملاحظة السكن: <b>${esc(r.houseNote)}</b>`:''}</div>
-      ${r.curHouse?`<div>السكن الحالي: <b>${esc(r.curHouse)}</b></div>`:''}${r.oldHouse?`<div>السكن السابق: <b>${esc(r.oldHouse)}</b></div>`:''}
+      ${r.oldHouse?`<div>السكن السابق: <b>${esc(r.oldHouse)}</b></div>`:''}
       ${baseOf(r.status)==='s'?`<div>الإعالة: <b>${esc(supTxt(r))}</b></div>`:''}
       <div>عدد الأفراد: <b>${r.count}</b> &nbsp;|&nbsp; الجوال: ${esc(r.mob1)}${r.mob2?' &nbsp;|&nbsp; '+esc(payStr(r)):''}</div>
       ${r.cases.dis&&r.cases.disNote?`<div>تفاصيل الإعاقة: ${esc(r.cases.disNote)}</div>`:''}
@@ -1886,7 +1885,7 @@ function syncDraft(){
   ['hName','hId','hDob','wName','wId','wDob'].forEach(k=>{if($('e_'+k))d[k]=cm[k]});
   d.mob1=cm.mob1;d.mob2=cm.mob2;d.payType=cm.payType;
   if($('e_notes'))d.notes=$('e_notes').value;
-  d.house=cm.house;d.houseNote=cm.houseNote;d.tent=cm.tent;d.sector=cm.sector;d.cases=cm.cases;d.curHouse=cm.curHouse;d.oldHouse=cm.oldHouse;d.sup=cm.sup;
+  d.house=cm.house;d.houseNote=cm.houseNote;d.tent=cm.tent;d.sector=cm.sector;d.cases=cm.cases;d.oldHouse=cm.oldHouse;d.sup=cm.sup;
   d.status=mkStatus(d._base,d._gender);
   if(baseOf(d.status)!=='s')d.sup={};
   d.count=draftCount(d);
@@ -2032,7 +2031,6 @@ const FAMCOLS=[
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r)},
  {k:'sec',l:'القاطع',v:r=>secOf(r)},
  {k:'hnote',l:'ملاحظة السكن',v:r=>r.houseNote||'-',c:'wide'},
- {k:'hcur',l:'السكن الحالي (تفاصيل)',v:r=>r.curHouse||'-',c:'wide'},
  {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.oldHouse||'-',c:'wide'},
  {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r),c:'wide'},
  {k:'cases',l:'الحالات الخاصة',v:r=>casesList(r).map(c=>c.t).join('، ')||'-',
@@ -2071,7 +2069,6 @@ const KIDCOLS=[
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r.f)},
  {k:'sec',l:'القاطع',v:r=>secOf(r.f)},
  {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'},
- {k:'hcur',l:'السكن الحالي (تفاصيل)',v:r=>r.f.curHouse||'-',c:'wide'},
  {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.f.oldHouse||'-',c:'wide'},
  {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r.f),c:'wide'}
 ];
@@ -2092,7 +2089,6 @@ const SPECECOLS=[
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r.f)},
  {k:'sec',l:'القاطع',v:r=>secOf(r.f)},
  {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'},
- {k:'hcur',l:'السكن الحالي (تفاصيل)',v:r=>r.f.curHouse||'-',c:'wide'},
  {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.f.oldHouse||'-',c:'wide'},
  {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r.f),c:'wide'}
 ];
@@ -2177,7 +2173,6 @@ const SPECPCOLS=[
  {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r.f)},
  {k:'sec',l:'القاطع',v:r=>secOf(r.f)},
  {k:'hnote',l:'ملاحظة السكن',v:r=>r.f.houseNote||'-',c:'wide'},
- {k:'hcur',l:'السكن الحالي (تفاصيل)',v:r=>r.f.curHouse||'-',c:'wide'},
  {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.f.oldHouse||'-',c:'wide'},
  {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r.f),c:'wide'}
 ];
@@ -2294,7 +2289,7 @@ if(colOff.repG===undefined)colOff.repG=colOffDef.repG.slice();
 (function(){ /* أعمدة السكن والإعالة الجديدة: مخفية افتراضياً */
   try{
     if(localStorage.getItem('cols_mig_hs1'))return;
-    Object.keys(TABLES).forEach(t=>{if(TABLES[t].cols.some(c=>c.k==='hcur')){const a=colOff[t]||(colOff[t]=[]);['hcur','hold','sup'].forEach(k=>{if(!a.includes(k))a.push(k)})}});
+    Object.keys(TABLES).forEach(t=>{if(TABLES[t].cols.some(c=>c.k==='hold')){const a=colOff[t]||(colOff[t]=[]);['hold','sup'].forEach(k=>{if(!a.includes(k))a.push(k)})}});
     localStorage.setItem(COLKEY,JSON.stringify(colOff));localStorage.setItem('cols_mig_hs1','1');
   }catch(e){}
 })();
