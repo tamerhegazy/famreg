@@ -204,6 +204,7 @@
     table.dt td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .tag,.orph,.cs,.g,.normal{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     body[data-pr=prj] #prjBenCard,body[data-pr=prjB] #prjListCard{display:none!important}
+    body[data-pr=aid] #aidFormCard,body[data-pr=aid] #aidBenCard,body[data-pr=aidB] #aidFormCard,body[data-pr=aidB] #aidLogCard{display:none!important}
     tr{page-break-inside:avoid}
     thead{display:table-header-group}
   }
@@ -512,7 +513,7 @@
 
 <!-- ================= مساعدات ================= -->
 <section id="aid" class="hide">
-  <div class="card">
+  <div class="card" id="aidFormCard">
     <h2>🤝 تسجيل مساعدة جديدة</h2>
     <label>نوع المساعدة</label>
     <div class="radios" id="aKindBox">
@@ -543,7 +544,7 @@
       <h3>👨‍👩‍👧 اختيار العائلات المستفيدة</h3>
       <p class="sub">ابحث باسم رب الأسرة أو رقم الهوية، واضغط على الدائرة الصغيرة ➕ لتصير ✔ (يعني مختارة).</p>
       <div class="row">
-        <div><label>بحث بالاسم أو رقم الهوية</label><input type="text" id="aQ" oninput="aidSearch()" placeholder="اكتب جزء من الاسم أو الهوية"></div>
+        <div><label>بحث بالاسم أو رقم الهوية</label><input type="text" id="aQ" oninput="dbc(aidSearch)" placeholder="اكتب جزء من الاسم أو الهوية"></div>
         <div><label>أو إضافة كل عائلات قاطع معين</label>
           <div class="acts"><select id="aSec" style="max-width:160px"></select>
           <button class="btn gray small" onclick="aidAddSector()">➕ إضافة كل القاطع</button></div></div>
@@ -560,9 +561,35 @@
     <button class="btn green" onclick="aidSave()">💾 حفظ المساعدة</button>
   </div>
 
-  <div class="card">
-    <h2>سجل المساعدات المسجلة</h2>
+  <div class="card" id="aidLogCard">
+    <div class="printOnly" data-camphdr></div>
+    <div class="bar">
+      <b id="aidLogTitle">سجل المساعدات المسجلة</b>
+      <span class="noprint">
+        <button class="btn gray small" onclick="doPdf('aid')">📄 تحويل إلى PDF</button>
+        <button class="btn gray small" onclick="exportXlsx('aid')">📤 تصدير Excel</button>
+      </span>
+    </div>
+    <div id="pick_aid" class="noprint"></div>
+    <div class="listTitle printOnly" id="pHeadAid"></div>
     <div id="aLog"></div>
+    <div class="printOnly" data-campftr></div>
+  </div>
+  <div class="card hide" id="aidBenCard">
+    <div class="printOnly" data-camphdr></div>
+    <div class="bar">
+      <b id="aidBTitle"></b>
+      <span class="noprint">
+        <button class="btn gray small" onclick="doPdf('aidB')">📄 تحويل إلى PDF</button>
+        <button class="btn gray small" onclick="exportXlsx('aidB')">📤 تصدير Excel</button>
+        <button class="btn gray small" onclick="aidHide()">إغلاق</button>
+      </span>
+    </div>
+    <div id="aidBInfo" class="info" style="background:#f1f4f8;border-radius:8px;padding:10px 14px;margin:8px 0;line-height:1.9"></div>
+    <div id="pick_aidB" class="noprint"></div>
+    <div class="listTitle printOnly" id="pHeadAidB"></div>
+    <div id="aidBTable"></div>
+    <div class="printOnly" data-campftr></div>
   </div>
 </section>
 
@@ -733,7 +760,7 @@
     <h2>بحث بالهوية أو الاسم (تعديل / حذف)</h2>
     <p class="sub">اكتب رقم هوية أي فرد من الأسرة، أو اكتب اسم أو اسم العائلة (مثلاً: الشامي)، وبتظهر كل الأسر المطابقة وخيارات التعديل والحذف.</p>
     <label>رقم الهوية أو الاسم</label>
-    <input type="text" id="idQ" maxlength="60" placeholder="رقم هوية أو اسم / اسم عائلة" oninput="ui.fam=null;ui.panel=null;renderById()">
+    <input type="text" id="idQ" maxlength="60" placeholder="رقم هوية أو اسم / اسم عائلة" oninput="ui.fam=null;ui.panel=null;dbc(renderById)">
   </div>
   <div id="idResults"></div>
 </section>
@@ -882,7 +909,9 @@ function lsSet(k,v){
   try{localStorage.setItem(k,JSON.stringify(v));return true}
   catch(e){notify('تعذّر حفظ البيانات (ذاكرة المتصفح ممتلئة). احفظ نسخة احتياطية الآن!',false);return false}
 }
-function save(){return lsSet(KEY,data)}
+var _nmIdx=null;
+function dbc(fn,ms){clearTimeout(fn._t);fn._t=setTimeout(fn,ms||180)}
+function save(){_nmIdx=null;return lsSet(KEY,data)}
 function saveAids(){return lsSet(AKEY,aids)}
 function saveCats(){return lsSet(CKEY,customCats)}
 let removedCats=load('aidcatsrm_v1',[]);if(!Array.isArray(removedCats))removedCats=[];
@@ -919,7 +948,9 @@ function ageOf(dob){
 }
 const fmtAge=a=>a==null?'-':a;
 function newId(){return Date.now()+Math.floor(Math.random()*1e6)}
-function normAr(s){return String(s||'').replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase()}
+var _nc=new Map();
+function normAr(s){const k=String(s||'');let v=_nc.get(k);if(v!==undefined)return v;v=normAr0(k);if(_nc.size>80000)_nc.clear();_nc.set(k,v);return v}
+function normAr0(s){return String(s||'').replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim().toLowerCase()}
 
 /* ---------- الحالة الاجتماعية ---------- */
 const MALE_ST=['أرمل','مطلق','مهجور','أعزب'],FEMALE_ST=['أرملة','مطلقة','مهجورة','عزباء'];
@@ -993,7 +1024,8 @@ function cmp(op,a,v1,v2){
   }
   return true;
 }
-const byName=g=>(a,b)=>String(g(a)||'').localeCompare(String(g(b)||''),'ar');
+const AR_COL=new Intl.Collator('ar');
+const byName=g=>(a,b)=>AR_COL.compare(String(g(a)||''),String(g(b)||''));
 const radVal=n=>{const e=document.querySelector('input[name="'+n+'"]:checked');return e?e.value:''};
 function sectorCount(name){return data.filter(f=>f.sector===name&&hasSector(f)).length}
 function renderSecList(){
@@ -1761,7 +1793,7 @@ function renderById(){
   }
   if(!rows.length){box.innerHTML='<div class="card"><p>ما في عائلة مسجلة بهذا الرقم أو الاسم.</p></div>';return}
   setTimeout(()=>{if(ui.draft&&ui.draft._base==='o'){const s=$('ek_status');if(s){s.value='يتيم';s.disabled=true;kidStatusChange('ek')}}},0);
-  box.innerHTML=(rows.length>1?`<div class="sub" style="margin:6px 4px">عدد الأسر المطابقة: <b>${rows.length}</b></div>`:'')+rows.map(cardHTML).join('');
+  box.innerHTML=(rows.length>1?`<div class="sub" style="margin:6px 4px">عدد الأسر المطابقة: <b>${rows.length}</b></div>`:'')+rows.slice(0,25).map(cardHTML).join('')+(rows.length>25?`<div class="card"><p class="sub">عرضت أول 25 عائلة من ${rows.length}. اكتب اسم أو رقم هوية أدق عشان تضيّق البحث.</p></div>`:'');
   attHydrate(box);
 }
 function cardHTML(r){
@@ -2228,21 +2260,35 @@ const PRJCOLS=[
  {k:'cnt',l:'عدد العائلات المستفيدة',v:r=>famsAlive(r).length,c:'num'},
  {k:'note',l:'ملاحظات',v:r=>r.note||'-',h:r=>`<div style="white-space:pre-line;text-align:right">${esc(r.note)||'-'}</div>`,c:'wide'}
 ];
-const PRJBCOLS=[
+const mkBenCols=gid=>[
  {k:'n',l:'#',v:(r,i)=>i+1,c:'num'},
  {k:'name',l:'اسم رب الأسرة',v:r=>famName(r),c:'nm'},
  {k:'id',l:'رقم الهوية',v:r=>headId(r),c:'nw'},
  {k:'st',l:'الحالة',v:r=>r.status,h:r=>tag(r.status),x:r=>({fill:ST_FILL[r.status]})},
  {k:'cnt',l:'عدد الأفراد',v:r=>r.count,c:'num'},
- {k:'who',l:'المستفيد',v:r=>{const a=aids.find(x=>x.id===prjViewId);return a&&a.who&&a.who[r.id]?personName(r,a.who[r.id]):'الأسرة كاملة'},c:'nm'},
- {k:'m1',l:'الجوال',v:r=>r.mob1,c:'nw'},
- {k:'house',l:'نوع السكن',v:r=>r.house||'-',c:'nw'},
- {k:'tent',l:'رقم الخيمة',v:r=>tentOf(r)},
- {k:'sec',l:'القاطع',v:r=>secOf(r)}
+ {k:'who',l:'المستفيد',v:r=>{const a=aids.find(x=>x.id===gid());return a&&a.who&&a.who[r.id]?personName(r,a.who[r.id]):'الأسرة كاملة'},c:'nm'},
+ ...FAMCOLS.filter(c=>!['n','st','cnt','hName','hId'].includes(c.k))
+];
+const BEN_KEEP=['n','name','id','st','cnt','who','m1','house','tent','sec'];
+let aidViewId=null;
+const PRJBCOLS=mkBenCols(()=>prjViewId);
+const AIDBCOLS=mkBenCols(()=>aidViewId);
+const AIDCOLS=[
+ {k:'n',l:'#',v:(r,i)=>i+1,c:'num'},
+ {k:'date',l:'التاريخ',v:r=>r.date,c:'nw'},
+ {k:'name',l:'المشروع',v:r=>r.name||'-',c:'nm'},
+ {k:'kind',l:'النوع',v:r=>r.kind==='cash'?'نقدية':'عينية (طرود)',x:r=>({fill:r.kind==='cash'?'D3F9D8':'FFE8CC'})},
+ {k:'det',l:'التفاصيل / القيمة',v:r=>aidDetails(r),c:'wide'},
+ {k:'org',l:'المؤسسة الممولة',v:r=>r.org||'-'},
+ {k:'place',l:'مكان الاستلام',v:r=>r.place||'-'},
+ {k:'cnt',l:'عدد العائلات',v:r=>famsAlive(r).length,c:'num'},
+ {k:'note',l:'ملاحظات',v:r=>r.note||'-',h:r=>`<div style="white-space:pre-line;text-align:right">${esc(r.note)||'-'}</div>`,c:'wide'}
 ];
 const TABLES={
  prj:{cols:PRJCOLS,box:'pick_prj',el:'prjTable',file:'كشف_المشاريع',rows:()=>prjRows(),render:()=>renderPrj(),
    act:r=>`<button class="btn green small" onclick="prjView(${r.id})">👁️ المستفيدون</button> <button class="btn red small" onclick="prjDelete(${r.id})">🗑️</button>${noteQuick(r.id,'anp_')}`},
+ aid:{cols:AIDCOLS,box:'pick_aid',el:'aLog',file:'سجل_المساعدات',act:r=>`<button class="btn green small" onclick="aidView(${r.id})">👁️ المستفيدون</button> <button class="btn red small" onclick="aidDelete(${r.id})">🗑️</button>${noteQuick(r.id,'ana_')}`,rows:()=>aidRows(),render:()=>aidLog()},
+ aidB:{cols:AIDBCOLS,box:'pick_aidB',el:'aidBTable',file:'مستفيدو_المساعدة',manage:true,rows:()=>aidBenRows(),render:()=>renderAidB()},
  prjB:{cols:PRJBCOLS,box:'pick_prjB',el:'prjBTable',file:'مستفيدو_المشروع',manage:true,rows:()=>prjBenRows(),render:()=>renderPrjB()},
  fam:{cols:FAMCOLS,box:'pick_fam',el:'listTable',file:'كشف_العائلات',manage:true,rows:()=>filtered(),render:()=>renderList()},
  kid:{cols:KIDCOLS,box:'pick_kid',el:'kidsTable',file:'كشف_الأبناء',rows:()=>matchedKids(),render:()=>renderKids()},
@@ -2267,7 +2313,7 @@ function excLabel(t,r,i){
   const T=TABLES[t],c=T.cols.find(c=>['name','hName','head','nm','pn','kname'].includes(c.k))||T.cols[1]||T.cols[0];
   try{return String(c.v(r,i)||'').replace(/\n.*/s,'')||('سجل '+(i+1))}catch(e){return 'سجل '+(i+1)}
 }
-[['filtered','fam'],['matchedKids','kid'],['elderRows','specE'],['specRows','spec'],['specPRows','specP'],['repRowsB','repB'],['repRowsG','repG'],['repRowsN','repN'],['prjRows','prj'],['prjBenRows','prjB']].forEach(([fn,t])=>{
+[['filtered','fam'],['matchedKids','kid'],['elderRows','specE'],['specRows','spec'],['specPRows','specP'],['repRowsB','repB'],['repRowsG','repG'],['repRowsN','repN'],['prjRows','prj'],['prjBenRows','prjB'],['aidBenRows','aidB']].forEach(([fn,t])=>{
   const o=window[fn];if(typeof o!=='function')return;
   window[fn]=function(){const rs=o.apply(this,arguments);
     if(!hdr.exc||!EXC[t]||!Object.keys(EXC[t]).length)return rs;
@@ -2286,6 +2332,13 @@ function excStrip(t){
 
 let colOff=load(COLKEY,{});if(!colOff||typeof colOff!=='object'||Array.isArray(colOff))colOff={};
 if(colOff.repG===undefined)colOff.repG=colOffDef.repG.slice();
+(function(){ /* كشف المستفيدين: الأعمدة الإضافية مخفية افتراضياً */
+  try{
+    if(localStorage.getItem('cols_mig_ben1'))return;
+    ['prjB','aidB'].forEach(t=>{const a=colOff[t]||(colOff[t]=[]);TABLES[t].cols.forEach(c=>{if(!BEN_KEEP.includes(c.k)&&!a.includes(c.k))a.push(c.k)})});
+    localStorage.setItem(COLKEY,JSON.stringify(colOff));localStorage.setItem('cols_mig_ben1','1');
+  }catch(e){}
+})();
 (function(){ /* أعمدة السكن والإعالة الجديدة: مخفية افتراضياً */
   try{
     if(localStorage.getItem('cols_mig_hs1'))return;
@@ -2319,14 +2372,6 @@ function renderPick0(t){
   $(T.box).innerHTML=`<details class="pdfCols"><summary>🧩 اختر الأعمدة اللي بدك تظهر (بتنطبق على الشاشة وPDF وExcel)</summary>
     <div class="colsList">${T.cols.map(c=>`<label><input type="checkbox" ${colOn(t,c.k)?'checked':''} onchange="colToggle('${t}','${c.k}',this.checked)">${c.l}</label>`).join('')}</div>
     <div class="acts"><button class="btn gray small" onclick="colsAll('${t}',true)">تحديد الكل</button> <button class="btn gray small" onclick="colsAll('${t}',false)">إلغاء الكل</button></div>
-    <div class="hdrOpts" style="margin-top:4px"><label><input type="checkbox" ${hdr.ft?'checked':''} onchange="hdrSet('ft',this.checked)">تذييل أسفل الكشف (مدير المخيم + الجوالات)</label>
-      <label>مكانه: <select onchange="hdrSet('ftSide',this.value)"><option value="r" ${hdr.ftSide==='r'?'selected':''}>يمين</option><option value="l" ${hdr.ftSide==='l'?'selected':''}>يسار</option><option value="c" ${hdr.ftSide==='c'?'selected':''}>وسط</option></select></label></div>
-    <div class="row3"><div><label>المسمى</label><input type="text" maxlength="60" value="${esc(hdr.ftTitle)}" onchange="hdrSet('ftTitle',this.value.trim())"></div>
-      <div><label>الاسم</label><input type="text" maxlength="60" value="${esc(hdr.ftName)}" onchange="hdrSet('ftName',this.value.trim())"></div>
-      <div><label>جوال للتواصل</label><input type="text" maxlength="10" inputmode="numeric" value="${esc(hdr.ftP1)}" onchange="hdrSet('ftP1',this.value.trim())"></div>
-      <div><label>جوال ثاني</label><input type="text" maxlength="10" inputmode="numeric" value="${esc(hdr.ftP2)}" onchange="hdrSet('ftP2',this.value.trim())"></div>
-      <div style="grid-column:1/-1"><label>سطر إضافي أسفل الكشف (اختياري)</label><input type="text" maxlength="150" value="${esc(hdr.ftNote)}" onchange="hdrSet('ftNote',this.value.trim())"></div></div>
-    <div class="hdrOpts"><label><input type="checkbox" ${hdr.exc?'checked':''} onchange="hdrSet('exc',this.checked)">🚫 إظهار خانة "استبعاد" بجانب كل اسم (لإلغاء أسماء من الكشف فقط بدون حذفها)</label></div>
     <p class="sub">الاختيار بيتحفظ لحاله. ملف Excel وPDF بيطلعوا بنفس الأعمدة المختارة.</p></details>`;
 }
 function colsSaveOff(){lsSet(COLKEY,colOff)}
@@ -2341,10 +2386,18 @@ function colsAll(t,on){
   document.querySelectorAll('#'+TABLES[t].box+' input[type=checkbox]').forEach(cb=>cb.checked=on);
   TABLES[t].render();
 }
+const TBL_LIM=300,TBL_ALL={};
+function tblAll(t,v){TBL_ALL[t]=v!==false;TABLES[t].render()}
+function tblPrintPrep(){const ch=[];Object.keys(TABLES).forEach(t=>{const e=$(TABLES[t].el);if(e&&e.offsetParent!==null&&!TBL_ALL[t]){TBL_ALL[t]=true;ch.push(t)}});ch.forEach(t=>TABLES[t].render());return ch}
+function tblPrintDone(ch){(ch||[]).forEach(t=>{delete TBL_ALL[t]});(ch||[]).forEach(t=>TABLES[t].render())}
+let _pch=null;
+window.addEventListener('beforeprint',()=>{_pch=tblPrintPrep()});
+window.addEventListener('afterprint',()=>{tblPrintDone(_pch);_pch=null});
 function tblHTML(t,rows){
   const T=TABLES[t],cols=activeCols(t);
   if(!cols.length)return '<p class="empty">اختر عمود واحد على الأقل من "اختر الأعمدة".</p>';
   if(!rows.length)return excStrip(t)+'<p class="empty">لا توجد نتائج.</p>';
+  const lim=!TBL_ALL[t]&&rows.length>TBL_LIM,allRows=rows;if(lim)rows=rows.slice(0,TBL_LIM);
   const ex=!!hdr.exc;if(ex)EXCK[t]=rows.map((r,i)=>({k:rowKey(r),l:excLabel(t,r,i)}));
   const pf=cols.length>14?'8.5px':cols.length>11?'9.5px':'11px';
   let h=`<div class="tblWrap"><table class="dt" style="--pf:${pf}"><thead><tr>`+cols.map(c=>`<th>${c.l}</th>`).join('')+((T.act||T.manage)?'<th class="noprint">إدارة</th>':'')+(ex?'<th class="noprint">استبعاد</th>':'')+'</tr></thead><tbody>';
@@ -2352,7 +2405,7 @@ function tblHTML(t,rows){
     h+='<tr>'+cols.map(c=>`<td class="${c.c||''}">${c.h?c.h(r,i):esc(c.v(r,i)).replace(/\n/g,'<br>')}</td>`).join('')+
       (T.act?`<td class="noprint">${T.act(r)}</td>`:(T.manage?`<td class="noprint"><button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button></td>`:''))+(ex?`<td class="noprint"><button class="btn red small" title="استبعاد من الكشف" onclick="excAdd('${t}',${i})">🚫</button></td>`:'')+'</tr>';
   });
-  return excStrip(t)+h+'</tbody></table></div>';
+  return excStrip(t)+h+'</tbody></table></div>'+(lim?`<div class="noprint" style="background:#e7f1fb;border-radius:8px;padding:10px 14px;margin-top:8px">يعرض أول ${TBL_LIM} من ${allRows.length} سطر لتسريع البرنامج (الطباعة وPDF وExcel بيطلعوا كاملين). <button class="btn gray small" onclick="tblAll('${t}')">عرض الكل (${allRows.length})</button></div>`:'');
 }
 function manage(id){
   const r=data.find(d=>d.id===id);if(!r)return;
@@ -2368,7 +2421,8 @@ function doPdf(t){
   const key=tableKey(t);
   if(!activeCols(key).length)return notify('اختر عمود واحد على الأقل ليظهر في PDF',false);
   document.body.dataset.pr=key;
-  const done=()=>{delete document.body.dataset.pr};
+  const pch=tblPrintPrep();
+  const done=()=>{delete document.body.dataset.pr;tblPrintDone(pch)};
   if(window.desktop&&window.desktop.pdf){
     window.desktop.pdf().then(()=>notify('انفتح الكشف كملف PDF. منه تقدر تحفظه أو تطبعه.',true)).catch(()=>notify('تعذّر إنشاء ملف PDF',false)).finally(done);
   }else{
@@ -2700,7 +2754,7 @@ function aidInit(){
   condRender('aid');
   fillSectors('aSec','اختر القاطع...');
   if(!$('aDate').value)$('aDate').value=today();
-  aidKindChange();aidSearch();aidRenderSel();aidLog();
+  aidKindChange();aidSearch();aidRenderSel();renderPick('aid');renderPick('aidB');aidLog();
 }
 function aidKindChange(){
   const k=radVal('aKind');
@@ -2785,17 +2839,33 @@ function aidSave(){
   aidKindChange();aidSearch();aidRenderSel();aidLog();rosterRender('aid');
   notify('تم تسجيل المساعدة لعدد '+n+' عائلة',true);
 }
+const aidRows=()=>[...aids].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 function aidLog(){
-  const box=$('aLog');
-  if(!aids.length){box.innerHTML='<p class="empty">ما في مساعدات مسجلة لسا.</p>';return}
-  const rows=[...aids].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-  box.innerHTML='<div class="tblWrap"><table class="dt"><thead><tr><th>#</th><th>التاريخ</th><th>المشروع</th><th>النوع</th><th>التفاصيل / القيمة</th><th>المؤسسة الممولة</th><th>مكان الاستلام</th><th>ملاحظات</th><th>العائلات</th><th>حذف</th></tr></thead><tbody>'+
-    rows.map((a,i)=>{
-      const fs=a.fams.map(id=>data.find(f=>f.id===id)).filter(Boolean).sort(byName(famName));
-      return `<tr><td class="num">${i+1}</td><td class="nw">${esc(a.date)}</td><td>${esc(a.name)||'-'}</td><td>${a.kind==='cash'?'💵 نقدية':'📦 عينية'}</td><td class="wide">${esc(aidDetails(a))}</td><td>${esc(a.org)}</td><td>${esc(a.place)||'-'}</td>
-      <td class="wide"><div style="white-space:pre-line;text-align:right">${esc(a.note)||'-'}</div>${noteQuick(a.id,'ana_')}</td>
-      <td class="wide"><details><summary>${fs.length} عائلة</summary>${fs.map(f=>`<div class="kline">${esc(famName(f))}${a.who&&a.who[f.id]?' ← '+esc(personName(f,a.who[f.id])):''}</div>`).join('')}</details></td>
-      <td><button class="btn red small" onclick="aidDelete(${a.id})">🗑️ حذف</button></td></tr>`}).join('')+'</tbody></table></div>';
+  const rows=aidRows();
+  tTitle.aid='كشف المساعدات والمشاريع المسجلة';
+  $('aidLogTitle').textContent='سجل المساعدات المسجلة — العدد: '+rows.length;
+  hdrLine('pHeadAid',tTitle.aid,rows.length);
+  $('aLog').innerHTML=rows.length?tblHTML('aid',rows):'<p class="empty">ما في مساعدات مسجلة لسا.</p>';
+  if(aidViewId&&!aids.some(a=>a.id===aidViewId))aidHide();
+}
+function aidView(id){
+  aidViewId=id;renderAidB();
+  $('aidBenCard').classList.remove('hide');
+  $('aidBenCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function aidHide(){aidViewId=null;$('aidBenCard').classList.add('hide')}
+function aidBenRows(){
+  const a=aids.find(x=>x.id===aidViewId);if(!a)return [];
+  return famsAlive(a).map(id=>data.find(f=>f.id===id)).sort(byName(famName));
+}
+function renderAidB(){
+  const a=aids.find(x=>x.id===aidViewId);if(!a)return;
+  const rows=aidBenRows(),nm=a.name?('مشروع: '+a.name):('مساعدة '+(a.kind==='cash'?'نقدية':'عينية')+' — '+a.org+' — '+a.date);
+  tTitle.aidB='مستفيدو '+nm;
+  $('aidBTitle').textContent='مستفيدو '+nm+' — عدد العائلات: '+rows.length;
+  hdrLine('pHeadAidB',tTitle.aidB,rows.length);
+  $('aidBInfo').innerHTML=(a.name?'المشروع: <b>'+esc(a.name)+'</b> &nbsp;|&nbsp; ':'')+'المؤسسة الممولة: <b>'+esc(a.org)+'</b> &nbsp;|&nbsp; التاريخ: <b>'+esc(a.date)+'</b><br>نوع الاستفادة: <b>'+(a.kind==='cash'?'نقدية':'عينية (طرود)')+'</b> &nbsp;|&nbsp; التفاصيل: <b>'+esc(aidDetails(a))+'</b>'+(a.place?' &nbsp;|&nbsp; مكان الاستلام: <b>'+esc(a.place)+'</b>':'')+(a.note?'<br>ملاحظات: <b style="white-space:pre-line">'+esc(a.note)+'</b>':'');
+  $('aidBTable').innerHTML=tblHTML('aidB',rows);
 }
 function noteQuick(id,pre){
   return `<details class="qn" style="margin-top:6px;text-align:right"><summary>📝 إضافة ملاحظة</summary><input type="text" id="${pre}${id}" maxlength="300" placeholder="اكتب الملاحظة" style="margin:6px 0"><button class="btn green small" onclick="addAidNote(${id},'${pre}')">حفظ</button></details>`;
@@ -2805,13 +2875,13 @@ function addAidNote(id,pre){
   if(!a)return;
   if(t.length<2)return notify('اكتب الملاحظة أولاً',false);
   a.note=(a.note?a.note+'\n':'')+'['+today()+'] '+t;
-  saveAids();aidLog();renderPrj();if(prjViewId)renderPrjB();
+  saveAids();aidLog();renderPrj();if(prjViewId)renderPrjB();if(aidViewId)renderAidB();
   notify('تم حفظ الملاحظة',true);
 }
 function aidDelete(id){
   const a=aids.find(x=>x.id===id);if(!a)return;
   if(!confirm('حذف هذا السجل من المساعدات؟ ('+a.date+' - '+a.org+' - '+a.fams.length+' عائلة)'))return;
-  aids=aids.filter(x=>x.id!==id);saveAids();aidLog();
+  aids=aids.filter(x=>x.id!==id);saveAids();if(aidViewId===id)aidHide();aidLog();
   notify('تم حذف سجل المساعدة',true);
 }
 
@@ -3335,7 +3405,12 @@ function allMaj(g){
   const base=g==='dip'?BASE_MAJ_DIP.concat(customMajD):g==='uni'?BASE_MAJ.concat(customMaj):BASE_MAJ.concat(BASE_MAJ_DIP,customMaj,customMajD);
   return uniqAr(base.concat(u)).sort((a,b)=>a.localeCompare(b,'ar'))
 }
-function allNames(){const u=[];data.forEach(f=>{[f.hName,f.wName].forEach(n=>n&&u.push(n));(f.children||[]).forEach(k=>k.name&&u.push(k.name))});return uniqAr(u).sort((a,b)=>a.localeCompare(b,'ar'))}
+function nmIndex(){
+  if(_nmIdx)return _nmIdx;
+  const seen=new Map();
+  data.forEach(f=>{[f.hName,f.wName,...(f.children||[]).map(k=>k.name)].forEach(n=>{if(!n)return;const t=String(n).replace(/\s+/g,' ').trim(),q=normAr(t);if(q&&!seen.has(q))seen.set(q,t)})});
+  _nmIdx=[...seen].map(([q,t])=>({q,t}));return _nmIdx;
+}
 function nameSuggest(inp){
   const dl=$('nameList');if(!dl)return;
   const v=String(inp.value||'').replace(/\s+/g,' ').trimStart(),q=normAr(v);
@@ -3350,11 +3425,15 @@ function nameSuggest(inp){
       if(w.length>=2)L.push(first+' '+w.slice(0,1).concat(w.slice(-1)).join(' '));
     }
   }
-  if(q.length>=2)L=L.concat(allNames().filter(n=>normAr(n).includes(q)&&normAr(n)!==q).slice(0,12));
+  if(q.length>=2){
+    const ix=nmIndex(),out=[];
+    for(let i=0;i<ix.length&&out.length<12;i++){const e=ix[i];if(e.q!==q&&e.q.includes(q))out.push(e.t)}
+    L=L.concat(out);
+  }
   dl.innerHTML=uniqAr(L).slice(0,14).map(d=>`<option value="${esc(d)}">`).join('');
 }
 document.addEventListener('focusin',e=>{const t=e.target;if(t&&t.tagName==='INPUT'&&(/_name$/.test(t.id)||/^(e_)?[hw]Name$/.test(t.id)||/^e_[hw]Name$/.test(t.id))){t.setAttribute('list','nameList');t.setAttribute('autocomplete','off');nameSuggest(t)}});
-document.addEventListener('input',e=>{const t=e.target;if(t&&t.getAttribute&&t.getAttribute('list')==='nameList')nameSuggest(t)});
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.getAttribute&&t.getAttribute('list')==='nameList'){clearTimeout(window._nsT);window._nsT=setTimeout(()=>nameSuggest(t),120)}});
 function pxLists(){
   const o=l=>l.map(d=>`<option value="${esc(d)}">`).join('');
   [['disList',allDis()],['majList',allMaj()],['majList_uni',allMaj('uni')],['majList_dip',allMaj('dip')]].forEach(([id,l])=>{const e=$(id);if(e)e.innerHTML=o(l)});
@@ -3608,6 +3687,14 @@ function hdrOptsHTML(){
   return `<details class="pdfCols"><summary>🖨️ خيارات رأس الكشف (اسم المخيم / الشعار / العدد / التاريخ)</summary>
     <div class="hdrOpts">${ck('camp','اسم المخيم')}${ck('title','عنوان الكشف')}${ck('count','العدد')}${ck('date','التاريخ')}
     <label>الشعار: <select data-h="logo" onchange="hdrSet('logo',this.value)"><option value="" ${hdr.logo===''?'selected':''}>بدون شعار</option><option value="r" ${hdr.logo==='r'?'selected':''}>يمين</option><option value="l" ${hdr.logo==='l'?'selected':''}>يسار</option><option value="b" ${hdr.logo==='b'?'selected':''}>يمين ويسار</option><option value="c" ${hdr.logo==='c'?'selected':''}>بالنص بعد اسم المخيم</option></select></label></div>
+    <div class="hdrOpts" style="margin-top:4px"><label><input type="checkbox" ${hdr.ft?'checked':''} onchange="hdrSet('ft',this.checked)">تذييل أسفل الكشف (مدير المخيم + الجوالات)</label>
+      <label>مكانه: <select onchange="hdrSet('ftSide',this.value)"><option value="r" ${hdr.ftSide==='r'?'selected':''}>يمين</option><option value="l" ${hdr.ftSide==='l'?'selected':''}>يسار</option><option value="c" ${hdr.ftSide==='c'?'selected':''}>وسط</option></select></label></div>
+    <div class="row3"><div><label>المسمى</label><input type="text" maxlength="60" value="${esc(hdr.ftTitle)}" onchange="hdrSet('ftTitle',this.value.trim())"></div>
+      <div><label>الاسم</label><input type="text" maxlength="60" value="${esc(hdr.ftName)}" onchange="hdrSet('ftName',this.value.trim())"></div>
+      <div><label>جوال للتواصل</label><input type="text" maxlength="10" inputmode="numeric" value="${esc(hdr.ftP1)}" onchange="hdrSet('ftP1',this.value.trim())"></div>
+      <div><label>جوال ثاني</label><input type="text" maxlength="10" inputmode="numeric" value="${esc(hdr.ftP2)}" onchange="hdrSet('ftP2',this.value.trim())"></div>
+      <div style="grid-column:1/-1"><label>سطر إضافي أسفل الكشف (اختياري)</label><input type="text" maxlength="150" value="${esc(hdr.ftNote)}" onchange="hdrSet('ftNote',this.value.trim())"></div></div>
+    <div class="hdrOpts"><label><input type="checkbox" ${hdr.exc?'checked':''} onchange="hdrSet('exc',this.checked)">🚫 إظهار خانة "استبعاد" بجانب كل اسم (لإلغاء أسماء من الكشف فقط بدون حذفها)</label></div>
     <p class="sub">الاختيار بيتحفظ لحاله وبينطبق على كل الكشوفات. الشعار بيظهر بالـ PDF والطباعة، أما ملف Excel فبيظهر فيه الاسم والعنوان والعدد والتاريخ حسب اختيارك.</p></details>`;
 }
 
