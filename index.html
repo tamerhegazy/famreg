@@ -544,7 +544,8 @@
       <h3>👨‍👩‍👧 اختيار العائلات المستفيدة</h3>
       <p class="sub">ابحث باسم رب الأسرة أو رقم الهوية، واضغط على الدائرة الصغيرة ➕ لتصير ✔ (يعني مختارة).</p>
       <div class="row">
-        <div><label>بحث بالاسم أو رقم الهوية</label><input type="text" id="aQ" oninput="dbc(aidSearch)" placeholder="اكتب جزء من الاسم أو الهوية"></div>
+        <div><label>بحث بالاسم أو رقم الهوية</label><input type="text" id="aQ" oninput="dbc(aidSearch)" placeholder="اكتب جزء من الاسم أو الهوية أو اسم العائلة">
+          <label class="chk" style="margin-top:6px"><input type="checkbox" id="aHead" onchange="aidSearch()">اسم رب الأسرة فقط (بدون الزوجة والأبناء)</label></div>
         <div><label>أو إضافة كل عائلات قاطع معين</label>
           <div class="acts"><select id="aSec" style="max-width:160px"></select>
           <button class="btn gray small" onclick="aidAddSector()">➕ إضافة كل القاطع</button></div></div>
@@ -586,6 +587,12 @@
       </span>
     </div>
     <div id="aidBInfo" class="info" style="background:#f1f4f8;border-radius:8px;padding:10px 14px;margin:8px 0;line-height:1.9"></div>
+    <details class="pdfCols noprint" style="margin:8px 0"><summary>➕ إضافة / ➖ حذف مستفيدين من هذا السجل (بعد الحفظ)</summary>
+      <p class="sub">مثلاً سجلت 75 عائلة واستفادت 80: ابحث عن العائلات الإضافية وأضفها (أو أضف كل نتائج الاسم بضغطة). ولحذف عائلة اضغط ➖ بجانبها في الجدول تحت.</p>
+      <div class="row"><div><label>بحث بالاسم أو اسم العائلة أو الهوية</label><input type="text" id="aideQ" oninput="dbc(aidBeSearch)" placeholder="اكتب جزء من الاسم أو الهوية">
+        <label class="chk" style="margin-top:6px"><input type="checkbox" id="aideHead" onchange="aidBeSearch()">اسم رب الأسرة فقط</label></div></div>
+      <div id="aideRes" style="margin-top:8px"></div>
+    </details>
     <div id="pick_aidB" class="noprint"></div>
     <div class="listTitle printOnly" id="pHeadAidB"></div>
     <div id="aidBTable"></div>
@@ -632,7 +639,8 @@
       <h3>👨‍👩‍👧 العائلات المستفيدة من المشروع</h3>
       <p class="sub">ابحث باسم رب الأسرة أو رقم الهوية، واضغط على الدائرة الصغيرة ➕ لتصير ✔.</p>
       <div class="row">
-        <div><label>بحث بالاسم أو رقم الهوية</label><input type="text" id="pQ" oninput="prjSearch()" placeholder="اكتب جزء من الاسم أو الهوية"></div>
+        <div><label>بحث بالاسم أو رقم الهوية</label><input type="text" id="pQ" oninput="dbc(prjSearch)" placeholder="اكتب جزء من الاسم أو الهوية أو اسم العائلة">
+          <label class="chk" style="margin-top:6px"><input type="checkbox" id="pHead" onchange="prjSearch()">اسم رب الأسرة فقط (بدون الزوجة والأبناء)</label></div>
         <div><label>أو إضافة كل عائلات قاطع معين</label>
           <div class="acts"><select id="pSec" style="max-width:160px"></select>
           <button class="btn gray small" onclick="prjAddSector()">➕ إضافة كل القاطع</button></div></div>
@@ -685,6 +693,12 @@
       </span>
     </div>
     <div id="prjBInfo" class="info" style="background:#f1f4f8;border-radius:8px;padding:10px 14px;margin:8px 0;line-height:1.9"></div>
+    <details class="pdfCols noprint" style="margin:8px 0"><summary>➕ إضافة / ➖ حذف مستفيدين من هذا السجل (بعد الحفظ)</summary>
+      <p class="sub">مثلاً سجلت 75 عائلة واستفادت 80: ابحث عن العائلات الإضافية وأضفها (أو أضف كل نتائج الاسم بضغطة). ولحذف عائلة اضغط ➖ بجانبها في الجدول تحت.</p>
+      <div class="row"><div><label>بحث بالاسم أو اسم العائلة أو الهوية</label><input type="text" id="prjeQ" oninput="dbc(prjBeSearch)" placeholder="اكتب جزء من الاسم أو الهوية">
+        <label class="chk" style="margin-top:6px"><input type="checkbox" id="prjeHead" onchange="prjBeSearch()">اسم رب الأسرة فقط</label></div></div>
+      <div id="prjeRes" style="margin-top:8px"></div>
+    </details>
     <div id="pick_prjB" class="noprint"></div>
     <div class="listTitle printOnly" id="pHeadPrjB"></div>
     <div id="prjBTable"></div>
@@ -2288,8 +2302,8 @@ const TABLES={
  prj:{cols:PRJCOLS,box:'pick_prj',el:'prjTable',file:'كشف_المشاريع',rows:()=>prjRows(),render:()=>renderPrj(),
    act:r=>`<button class="btn green small" onclick="prjView(${r.id})">👁️ المستفيدون</button> <button class="btn red small" onclick="prjDelete(${r.id})">🗑️</button>${noteQuick(r.id,'anp_')}`},
  aid:{cols:AIDCOLS,box:'pick_aid',el:'aLog',file:'سجل_المساعدات',act:r=>`<button class="btn green small" onclick="aidView(${r.id})">👁️ المستفيدون</button> <button class="btn red small" onclick="aidDelete(${r.id})">🗑️</button>${noteQuick(r.id,'ana_')}`,rows:()=>aidRows(),render:()=>aidLog()},
- aidB:{cols:AIDBCOLS,box:'pick_aidB',el:'aidBTable',file:'مستفيدو_المساعدة',manage:true,rows:()=>aidBenRows(),render:()=>renderAidB()},
- prjB:{cols:PRJBCOLS,box:'pick_prjB',el:'prjBTable',file:'مستفيدو_المشروع',manage:true,rows:()=>prjBenRows(),render:()=>renderPrjB()},
+ aidB:{cols:AIDBCOLS,box:'pick_aidB',el:'aidBTable',file:'مستفيدو_المساعدة',act:r=>`<button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button> <button class="btn red small" onclick="beRemove('aid',${r.id})">➖ إزالة من المساعدة</button>`,rows:()=>aidBenRows(),render:()=>renderAidB()},
+ prjB:{cols:PRJBCOLS,box:'pick_prjB',el:'prjBTable',file:'مستفيدو_المشروع',act:r=>`<button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button> <button class="btn red small" onclick="beRemove('prj',${r.id})">➖ إزالة من المشروع</button>`,rows:()=>prjBenRows(),render:()=>renderPrjB()},
  fam:{cols:FAMCOLS,box:'pick_fam',el:'listTable',file:'كشف_العائلات',manage:true,rows:()=>filtered(),render:()=>renderList()},
  kid:{cols:KIDCOLS,box:'pick_kid',el:'kidsTable',file:'كشف_الأبناء',rows:()=>matchedKids(),render:()=>renderKids()},
  specE:{cols:SPECECOLS,box:'pick_spec',el:'specTable',file:'كشف_كبار_السن',act:r=>`<button class="btn orange small" onclick="manage(${r.f.id})">⚙️ تعديل / حذف</button>`,rows:()=>elderRows(),render:()=>renderSpec()},
@@ -2790,13 +2804,72 @@ function famMatchQ(f,q){
   return nq&&[f.hName,f.wName,...f.children.map(k=>k.name)].some(n=>n&&normAr(n).includes(nq));
 }
 function famBrief(f){return esc(famName(f))+' • '+esc(headId(f))+(f.house==='خيمة'?' • خيمة '+esc(f.tent)+' / '+esc(f.sector):(f.house==='مبنى'?' • مبنى'+(f.sector?' / '+esc(f.sector):''):''))}
+function selMatches(q,headCk){
+  const only=$(headCk)&&$(headCk).checked;
+  if(!only)return data.filter(f=>famMatchQ(f,q)).sort(byName(famName));
+  const nq=normAr(q),dq=q.replace(/\D/g,'');
+  return data.filter(f=>{
+    if(dq&&dq.length>=3&&[f.hId,f.wId].some(i=>i&&i.includes(dq)))return true;
+    const nm=normAr(famName(f));return !!nq&&nm.includes(nq);
+  }).sort(byName(famName));
+}
+function selResHTML(rows,sel,tog,addAll){
+  const on=f=>sel.includes(f.id),left=rows.filter(f=>!on(f)).length;
+  return `<div class="sub" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0">عدد النتائج: <b>${rows.length}</b>${rows.length>30?' (معروض أول 30، والزر بيضيف الكل)':''}
+    <button class="btn green small" onclick="${addAll}()" ${left?'':'disabled style="opacity:.5"'}>➕ إضافة كل النتائج (${left})</button></div>`+
+    rows.slice(0,30).map(f=>`<div class="pick"><span>${famBrief(f)}</span><button class="pk ${on(f)?'on':''}" title="${on(f)?'إلغاء الاختيار':'اختيار'}" onclick="${tog}(${f.id})">${on(f)?'✔':'➕'}</button></div>`).join('');
+}
+function beRec(k){return aids.find(x=>x.id===(k==='aid'?aidViewId:prjViewId))}
+function beRefresh(k){
+  saveAids();aidLog();renderPrj();
+  if(aidViewId)renderAidB();if(prjViewId)renderPrjB();
+  (k==='aid'?aidBeSearch:prjBeSearch)();
+}
+function beRemove(k,fid){
+  const a=beRec(k);if(!a)return;
+  const f=data.find(x=>x.id===fid);
+  if(!confirm('إزالة عائلة «'+(f?famName(f):'')+'» من هذا السجل؟ (ما بتنحذف العائلة نفسها)'))return;
+  a.fams=a.fams.filter(x=>x!==fid);if(a.who)delete a.who[fid];
+  beRefresh(k);notify('تمت الإزالة. العدد صار '+famsAlive(a).length,true);
+}
+function beToggle(k,fid){
+  const a=beRec(k);if(!a)return;
+  const i=a.fams.indexOf(fid);
+  if(i>=0){a.fams.splice(i,1);if(a.who)delete a.who[fid]}else a.fams.push(fid);
+  beRefresh(k);
+}
+function beAll(k){
+  const a=beRec(k),q=$(k+'eQ').value.trim();if(!a||!q)return;
+  let n=0;selMatches(q,k+'eHead').forEach(f=>{if(!a.fams.includes(f.id)){a.fams.push(f.id);n++}});
+  beRefresh(k);notify('تمت إضافة '+n+' عائلة. العدد صار '+famsAlive(a).length,true);
+}
+function beSearch(k){
+  const a=beRec(k),box=$(k+'eRes'),q=$(k+'eQ').value.trim();
+  if(!box)return;
+  if(!a||!q){box.innerHTML='<p class="sub">اكتب اسم أو اسم عائلة أو هوية لتظهر النتائج.</p>';return}
+  const rows=selMatches(q,k+'eHead');
+  if(!rows.length){box.innerHTML='<p class="sub">ما في نتائج.</p>';return}
+  box.innerHTML=selResHTML(rows,a.fams,k+'BeToggle',k+'BeAll');
+}
+window.aidBeSearch=()=>beSearch('aid');window.prjBeSearch=()=>beSearch('prj');
+window.aidBeToggle=id=>beToggle('aid',id);window.prjBeToggle=id=>beToggle('prj',id);
+window.aidBeAll=()=>beAll('aid');window.prjBeAll=()=>beAll('prj');
+function aidAddAll(){
+  const q=$('aQ').value.trim();if(!q)return;
+  let n=0;selMatches(q,'aHead').forEach(f=>{if(!aidSel.includes(f.id)){aidSel.push(f.id);n++}});
+  aidSearch();aidRenderSel();rosterRender('aid');notify('تمت إضافة '+n+' عائلة',true);
+}
+function prjAddAll(){
+  const q=$('pQ').value.trim();if(!q)return;
+  let n=0;selMatches(q,'pHead').forEach(f=>{if(!prjSel.includes(f.id)){prjSel.push(f.id);n++}});
+  prjSearch();prjRenderSel();rosterRender('prj');notify('تمت إضافة '+n+' عائلة',true);
+}
 function aidSearch(){
   const q=$('aQ').value.trim(),box=$('aRes');
-  if(!q){box.innerHTML='<p class="sub">اكتب اسم رب الأسرة أو رقم الهوية ليظهروا هنا.</p>';return}
-  const rows=data.filter(f=>famMatchQ(f,q)).sort(byName(famName)).slice(0,30);
+  if(!q){box.innerHTML='<p class="sub">اكتب اسم رب الأسرة أو اسم العائلة أو رقم الهوية ليظهروا هنا.</p>';return}
+  const rows=selMatches(q,'aHead');
   if(!rows.length){box.innerHTML='<p class="sub">ما في نتائج.</p>';return}
-  box.innerHTML=rows.map(f=>{const on=aidSel.includes(f.id);
-    return `<div class="pick"><span>${famBrief(f)}</span><button class="pk ${on?'on':''}" title="${on?'إلغاء الاختيار':'اختيار'}" onclick="aidToggle(${f.id})">${on?'✔':'➕'}</button></div>`}).join('');
+  box.innerHTML=selResHTML(rows,aidSel,'aidToggle','aidAddAll');
 }
 function aidToggle(id){
   const i=aidSel.indexOf(id);
@@ -2849,7 +2922,7 @@ function aidLog(){
   if(aidViewId&&!aids.some(a=>a.id===aidViewId))aidHide();
 }
 function aidView(id){
-  aidViewId=id;renderAidB();
+  aidViewId=id;if($('aideQ'))$('aideQ').value='';renderAidB();aidBeSearch();
   $('aidBenCard').classList.remove('hide');
   $('aidBenCard').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -2913,11 +2986,10 @@ function prjAddCat(){
 }
 function prjSearch(){
   const q=$('pQ').value.trim(),box=$('pRes');
-  if(!q){box.innerHTML='<p class="sub">اكتب اسم رب الأسرة أو رقم الهوية ليظهروا هنا.</p>';return}
-  const rows=data.filter(f=>famMatchQ(f,q)).sort(byName(famName)).slice(0,30);
+  if(!q){box.innerHTML='<p class="sub">اكتب اسم رب الأسرة أو اسم العائلة أو رقم الهوية ليظهروا هنا.</p>';return}
+  const rows=selMatches(q,'pHead');
   if(!rows.length){box.innerHTML='<p class="sub">ما في نتائج.</p>';return}
-  box.innerHTML=rows.map(f=>{const on=prjSel.includes(f.id);
-    return `<div class="pick"><span>${famBrief(f)}</span><button class="pk ${on?'on':''}" title="${on?'إلغاء الاختيار':'اختيار'}" onclick="prjToggle(${f.id})">${on?'✔':'➕'}</button></div>`}).join('');
+  box.innerHTML=selResHTML(rows,prjSel,'prjToggle','prjAddAll');
 }
 function prjToggle(id){
   const i=prjSel.indexOf(id);
@@ -2992,7 +3064,7 @@ function renderPrj(){
   if(prjViewId&&!aids.some(a=>a.id===prjViewId))prjHide();
 }
 function prjView(id){
-  prjViewId=id;renderPrjB();
+  prjViewId=id;if($('prjeQ'))$('prjeQ').value='';renderPrjB();prjBeSearch();
   $('prjBenCard').classList.remove('hide');
   $('prjBenCard').scrollIntoView({behavior:'smooth',block:'start'});
 }
