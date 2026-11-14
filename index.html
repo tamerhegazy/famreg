@@ -14,7 +14,7 @@
 <title>برنامج تسجيل العائلات - مخيم فلسطين تل الهوا</title>
 <script>
 /* ===== رقم الإصدار + تحديث تلقائي (للجوال) ===== */
-var APP_VER='6-11';
+var APP_VER='14-11';
 async function appUpdate(){
   try{
     if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister()}
@@ -232,6 +232,8 @@ async function appUpdate(){
     table.dt th{white-space:normal;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     table.dt td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .tag,.orph,.cs,.g,.normal{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body[data-pr=hist] #histSearchCard,body[data-pr=hist] #histPSearch,body[data-pr=hist] #histPCard{display:none!important}
+    body[data-pr=histP] #histSearchCard,body[data-pr=histP] #histCard,body[data-pr=histP] #histPSearch{display:none!important}
     body[data-pr=prj] #prjBenCard,body[data-pr=prjB] #prjListCard{display:none!important}
     body[data-pr=aid] #aidFormCard,body[data-pr=aid] #aidBenCard,body[data-pr=aidB] #aidFormCard,body[data-pr=aidB] #aidLogCard{display:none!important}
     tr{page-break-inside:avoid}
@@ -261,6 +263,7 @@ async function appUpdate(){
   <button id="tab_spec" onclick="show('spec',this)">⭐ حالات خاصة</button>
   <button id="tab_aid" onclick="show('aid',this)">🤝 مساعدات</button>
   <button id="tab_prj" onclick="show('prj',this)">🏗️ مشاريع</button>
+  <button id="tab_hist" onclick="show('hist',this)">📜 سجل المستفيد</button>
   <button id="tab_rep" onclick="show('rep',this)">📊 تقارير</button>
   <button id="tab_byid" onclick="show('byid',this)">🔎 بحث برقم الهوية (تعديل / حذف)</button>
   <button id="tab_backup" onclick="show('backup',this)">💽 نسخ واستيراد</button>
@@ -365,14 +368,18 @@ async function appUpdate(){
         <select id="fGender" onchange="renderList()"><option value="">الكل</option><option value="ذكر">ذكر (متزوج، أرمل، مطلق)</option><option value="أنثى">أنثى (أرملة، مطلقة، مهجورة)</option></select>
       </div>
       <div>
-        <label>القاطع</label>
-        <select id="fSector" onchange="renderList()"></select>
+        <label>القاطع (فيك تختار أكثر من قاطع)</label>
+        <div class="radios" id="fSecBox"></div>
+        <select id="fSector" class="hide"></select>
       </div>
       <div>
         <label>نوع السكن</label>
-        <select id="fHouse" onchange="renderList()">
-          <option value="">الكل</option><option value="خيمة">خيمة</option><option value="مبنى">مبنى</option><option value="خارجي">خارجي</option>
-        </select>
+        <div class="radios">
+          <label><input type="checkbox" class="fhChk" value="خيمة" onchange="renderList()">خيمة / مخيم</label>
+          <label><input type="checkbox" class="fhChk" value="مبنى" onchange="renderList()">مبنى</label>
+          <label><input type="checkbox" class="fhChk" value="خارجي" onchange="renderList()">خارجي</label>
+        </div>
+        <small class="sub">اختر واحد أو أكثر، وبدون اختيار = الكل</small>
       </div>
       <div>
         <label>عدد الأفراد</label>
@@ -736,6 +743,55 @@ async function appUpdate(){
 </section>
 
 <!-- ================= تقارير ================= -->
+<section id="hist" class="hide">
+  <div class="card" id="histSearchCard">
+    <h2>📜 سجل المستفيد (المساعدات والمشاريع)</h2>
+    <p class="sub">ابحث باسم رب الأسرة أو رقم هويته، واضغط عليه عشان تشوف كل المساعدات والمشاريع اللي استفاد منها بالتفصيل (شو أخد ومتى).</p>
+    <input type="text" id="hQ" maxlength="60" oninput="dbc(histSearch)" placeholder="اسم رب الأسرة أو رقم الهوية">
+    <div id="hRes" style="margin-top:8px"></div>
+  </div>
+  <div class="card" id="histPSearch">
+    <h2>🗓️ كشف استفادة خلال فترة</h2>
+    <p class="sub">اكتب اسم الشخص (مثلاً "أحمد") أو رقم الهوية، وحدد الفترة (من تاريخ إلى تاريخ)، فيطلع كشف باسمه وكل شيء استفاد منه بهاي الفترة. اترك الاسم فاضي لو بدك كل العائلات.</p>
+    <label>الاسم أو رقم الهوية</label>
+    <input type="text" id="hpQ" maxlength="60" placeholder="مثال: أحمد">
+    <div class="row"><div><label>من تاريخ</label><input type="date" lang="en-GB" id="hpFrom"></div>
+    <div><label>إلى تاريخ</label><input type="date" lang="en-GB" id="hpTo"></div></div>
+    <button class="btn green" style="margin-top:8px" onclick="histPRun()">📋 إظهار الكشف</button>
+  </div>
+  <div class="card hide" id="histPCard">
+    <div class="printOnly" data-camphdr></div>
+    <div class="bar">
+      <b id="histPTitle"></b>
+      <span class="noprint">
+        <button class="btn gray small" onclick="doPdf('histP')">📄 تحويل إلى PDF</button>
+        <button class="btn gray small" onclick="exportXlsx('histP')">📤 تصدير Excel</button>
+        <button class="btn gray small" onclick="$('histPCard').classList.add('hide')">إغلاق</button>
+      </span>
+    </div>
+    <div id="histPInfo" style="background:#f1f4f8;border-radius:8px;padding:10px 14px;margin:8px 0;line-height:1.9"></div>
+    <div id="pick_histP" class="noprint"></div>
+    <div class="listTitle printOnly" id="pHeadHistP"></div>
+    <div id="histPTable"></div>
+    <div class="printOnly" data-campftr></div>
+  </div>
+  <div class="card hide" id="histCard">
+    <div class="printOnly" data-camphdr></div>
+    <div class="bar">
+      <b id="histTitle"></b>
+      <span class="noprint">
+        <button class="btn gray small" onclick="doPdf('hist')">📄 تحويل إلى PDF</button>
+        <button class="btn gray small" onclick="exportXlsx('hist')">📤 تصدير Excel</button>
+        <button class="btn gray small" onclick="histHide()">إغلاق</button>
+      </span>
+    </div>
+    <div id="histInfo" style="background:#f1f4f8;border-radius:8px;padding:10px 14px;margin:8px 0;line-height:1.9"></div>
+    <div id="pick_hist" class="noprint"></div>
+    <div class="listTitle printOnly" id="pHeadHist"></div>
+    <div id="histTable"></div>
+    <div class="printOnly" data-campftr></div>
+  </div>
+</section>
 <section id="rep" class="hide">
   <div class="card filters">
     <h2>📊 التقارير</h2>
@@ -1076,6 +1132,7 @@ function renderSecList(){
   b.innerHTML=SECTORS.map((x,i)=>`<span class="chip">${esc(x)} <small>(${sectorCount(x)} عائلة)</small><button title="حذف القاطع" onclick="delSector(${i})">✕</button></span>`).join('')||'<p class="sub">ما في قواطع.</p>';
 }
 function refreshSectors(){
+  fsecRender();
   [['fSector','كل القواطع'],['spSector','كل القواطع'],['aSec','اختر القاطع...'],['rSector','كل القواطع'],['pSec','اختر القاطع...']].forEach(([id,t])=>fillSectors(id,t));
   document.querySelectorAll('select[id$="sector"]').forEach(sel=>{
     if(!sel.closest('.secBox'))return;
@@ -1482,7 +1539,7 @@ function scanFile(file,mode){
 }
 
 /* ================= التبويبات ================= */
-const TABS=['dash','add','list','kids','spec','aid','prj','rep','byid','backup'];
+const TABS=['dash','add','list','kids','spec','aid','prj','hist','rep','byid','backup'];
 function show(id,btn){
   TABS.forEach(s=>$(s).classList.toggle('hide',s!==id));
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
@@ -1493,6 +1550,7 @@ function show(id,btn){
   if(id==='spec')specChange();
   if(id==='aid')aidInit();
   if(id==='prj')prjInit();
+  if(id==='hist')histInit();
   if(id==='rep')repChange();
   if(id==='byid')renderById();
   if(id==='backup'){$('totalCount').textContent=data.length;renderSecList()}
@@ -1815,6 +1873,17 @@ function resetAddForm(){
   renderNewKids();closeKidForm();buildAddExtras();toggleBoxes();pxMountAdd();
 }
 
+function addSecondWife(id){
+  const r=data.find(d=>d.id===id);if(!r)return;
+  show('add');resetAddForm();
+  $('hName').value=r.hName;$('hId').value=r.hId;$('hDob').value=r.hDob||'';
+  if($('hId').dispatchEvent)$('hId').dispatchEvent(new Event('input'));
+  const ho=document.querySelector('input[name=house][value="'+r.house+'"]');
+  window.scrollTo({top:0,behavior:'smooth'});
+  alert('تم تعبئة بيانات الزوج. اكتب بيانات الزوجة الثانية وأبناءها، ثم احفظ — تنحفظ كعائلة مستقلة بنفس هوية الزوج.');
+  setTimeout(()=>{try{$('wName').focus()}catch(e){}},300);
+}
+
 /* ================= عرض عائلة (بحث بالهوية) ================= */
 let ui={fam:null,panel:null,draft:null};
 function addNote(r,text){r.notes=(r.notes?r.notes+'\n':'')+'['+today()+'] '+text}
@@ -1851,6 +1920,7 @@ function cardHTML(r){
       ${r.hName?`<div>${m?'الزوج':'رب الأسرة'}: <b>${esc(r.hName)}</b> (${esc(r.hId)}) — العمر: <b>${fmtAge(ageOf(r.hDob))}</b> — ميلاد: ${esc(r.hDob)||'-'}</div>${pxSumHTML(r.hx,r.hDob,true,'ذكر')}`:''}
       ${r.wName?`<div>${m?'الزوجة':'رب الأسرة'}: <b>${esc(r.wName)}</b> (${esc(r.wId)}) — العمر: <b>${fmtAge(ageOf(r.wDob))}</b> — ميلاد: ${esc(r.wDob)||'-'}</div>${pxSumHTML(r.wx,r.wDob,true,'أنثى')}`:''}
       <div>السكن: <b>${esc(r.house)||'-'}</b>${r.house==='خيمة'?` — رقم الخيمة: <b>${esc(r.tent)}</b>`:''}${hasSector(r)?` — القاطع: <b>${esc(r.sector)}</b>`:''}${r.house==='خارجي'&&r.houseNote?` — ملاحظة السكن: <b>${esc(r.houseNote)}</b>`:''}</div>
+      ${(()=>{const o=r.hId?data.filter(d=>d.id!==r.id&&d.hId===r.hId):[];return o.length?`<div style="color:#9c36b5">👥 نفس الزوج مسجل في <b>${o.length+1}</b> عائلات (تعدد زوجات): ${o.map(d=>esc(d.wName||'-')).join('، ')}</div>`:''})()}
       ${r.oldHouse?`<div>السكن السابق: <b>${esc(r.oldHouse)}</b></div>`:''}
       ${baseOf(r.status)==='s'?`<div>الإعالة: <b>${esc(supTxt(r))}</b></div>`:''}
       <div>عدد الأفراد: <b>${r.count}</b> &nbsp;|&nbsp; الجوال: ${esc(r.mob1)}${r.mob2?' &nbsp;|&nbsp; '+esc(payStr(r)):''}</div>
@@ -1863,6 +1933,7 @@ function cardHTML(r){
     <div class="acts">
       ${btn('edit','✏️ تعديل البيانات','green')}
       ${btn('newkid','👶 إضافة ابن (مولود جديد)','green')}
+      ${r.hId&&r.hName?`<button class="btn green" onclick="addSecondWife(${r.id})">💍 إضافة زوجة ثانية / ثالثة</button>`:''}
       ${btn('note','📝 إضافة ملاحظة','gray')}
       ${r.status==='متزوج'?btn('spouse','👥 حذف أحد الزوجين','orange'):''}
       ${btn('delfam','🗑️ حذف الأسرة كاملة','red')}
@@ -2327,9 +2398,99 @@ const AIDCOLS=[
  {k:'cnt',l:'عدد العائلات',v:r=>famsAlive(r).length,c:'num'},
  {k:'note',l:'ملاحظات',v:r=>r.note||'-',h:r=>`<div style="white-space:pre-line;text-align:right">${esc(r.note)||'-'}</div>`,c:'wide'}
 ];
+/* ================= سجل المستفيد ================= */
+let histFamId=null;
+const histRowsOf=id=>aids.filter(a=>famsAlive(a).includes(id)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+const HISTCOLS=[
+ {k:'n',l:'#',v:(r,i)=>i+1,c:'num'},
+ {k:'date',l:'التاريخ',v:r=>r.a.date||'-',c:'nw'},
+ {k:'type',l:'النوع',v:r=>r.a.name?'مشروع':'مساعدة',x:r=>({fill:r.a.name?'DBE4FF':'D3F9D8'}),c:'nw'},
+ {k:'name',l:'اسم المشروع',v:r=>r.a.name||'-',c:'nm'},
+ {k:'kind',l:'نوع الاستفادة',v:r=>r.a.kind==='cash'?'نقدية':'عينية (طرود)',x:r=>({fill:r.a.kind==='cash'?'D3F9D8':'FFE8CC'}),c:'nw'},
+ {k:'det',l:'التفاصيل (ماذا استلم)',v:r=>aidDetails(r.a),c:'wide'},
+ {k:'cats',l:'الأصناف',v:r=>(r.a.cats||[]).join('، ')||'-',c:'wide'},
+ {k:'val',l:'القيمة',v:r=>r.a.value?(r.a.value+' '+(r.a.cur||'')):'-',c:'nw'},
+ {k:'org',l:'المؤسسة الممولة',v:r=>r.a.org||'-'},
+ {k:'place',l:'مكان الاستلام',v:r=>r.a.place||'-'},
+ {k:'who',l:'المستفيد',v:r=>{const w=r.a.who&&r.a.who[r.f.id];return w?personName(r.f,w):'الأسرة كاملة'},c:'nm'},
+ {k:'note',l:'ملاحظات',v:r=>r.a.note||'-',c:'wide'}
+];
+function histInit(){histSearch();if(histFamId&&data.some(f=>f.id===histFamId))renderHist();else histHide()}
+function histSearch(){
+  const q=$('hQ').value.trim(),box=$('hRes');
+  if(!q){box.innerHTML='<p class="sub">اكتب اسم رب الأسرة أو رقم الهوية ليظهروا هنا.</p>';return}
+  const dq=q.replace(/[^\d]/g,''),nq=normAr(q);
+  const rows=data.filter(f=>{
+    if(dq&&dq.length>=3&&[f.hId,f.wId].some(i=>i&&i.includes(dq)))return true;
+    return nq&&normAr(famName(f)).includes(nq);
+  }).sort(byName(famName));
+  if(!rows.length){box.innerHTML='<p class="sub">ما في نتائج.</p>';return}
+  box.innerHTML=`<div class="sub" style="margin:4px 0">عدد النتائج: <b>${rows.length}</b>${rows.length>30?' (معروض أول 30، اكتب أدق)':''}</div>`+
+    rows.slice(0,30).map(f=>{const n=histRowsOf(f.id).length;return `<div class="pick"><span>${famBrief(f)} • <b>${n}</b> استفادة</span><button class="pk" onclick="histView(${f.id})">📜 عرض</button></div>`}).join('');
+}
+function histView(id){
+  histFamId=id;renderHist();
+  $('histCard').classList.remove('hide');
+  $('histCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function histHide(){histFamId=null;const c=$('histCard');if(c)c.classList.add('hide')}
+function histRows(){const f=data.find(x=>x.id===histFamId);return f?histRowsOf(f.id).map(a=>({a,f})):[]}
+function renderHist(){
+  const f=data.find(x=>x.id===histFamId);if(!f){histHide();return}
+  const rows=histRows(),np=rows.filter(r=>r.a.name).length,na=rows.length-np;
+  const cash={};rows.forEach(r=>{if(r.a.kind==='cash'&&parseFloat(r.a.value)){const c=r.a.cur||'';cash[c]=(cash[c]||0)+parseFloat(r.a.value)}});
+  const cs=Object.keys(cash).map(c=>cash[c]+' '+c).join(' + ');
+  tTitle.hist='سجل المساعدات والمشاريع — '+famName(f)+' ('+headId(f)+')';
+  $('histTitle').textContent='سجل المستفيد: '+famName(f);
+  hdrLine('pHeadHist',tTitle.hist,rows.length);
+  $('histInfo').innerHTML='الاسم: <b>'+esc(famName(f))+'</b> &nbsp;|&nbsp; الهوية: <b>'+esc(headId(f))+'</b> &nbsp;|&nbsp; الحالة: <b>'+esc(f.status)+'</b> &nbsp;|&nbsp; عدد الأفراد: <b>'+f.count+'</b> &nbsp;|&nbsp; الجوال: <b>'+esc(f.mob1||'-')+'</b><br>السكن: <b>'+esc(f.house||'-')+'</b>'+(f.house==='خيمة'?' — خيمة '+esc(f.tent):'')+(hasSector(f)?' — قاطع '+esc(f.sector):'')+'<br>إجمالي الاستفادة: <b>'+rows.length+'</b> (مساعدات: '+na+' — مشاريع: '+np+')'+(cs?' &nbsp;|&nbsp; مجموع النقدي: <b>'+esc(cs)+'</b>':'');
+  $('histTable').innerHTML=rows.length?tblHTML('hist',rows):'<p class="empty">ما استفاد من أي مساعدة أو مشروع لحد هلأ.</p>';
+}
+let histPOn=false;
+const HISTPCOLS=[
+ HISTCOLS[0],
+ {k:'fn',l:'اسم رب الأسرة',v:r=>famName(r.f),c:'nm'},
+ {k:'fid',l:'رقم الهوية',v:r=>headId(r.f)||'-',c:'nw'},
+ {k:'fst',l:'الحالة',v:r=>r.f.status||'-',c:'nw'},
+ {k:'fmob',l:'الجوال',v:r=>r.f.mob1||'-',c:'nw'},
+ ...HISTCOLS.slice(1)
+];
+function histPRows(){
+  const q=($('hpQ').value||'').trim(),fr=$('hpFrom').value||'',to=$('hpTo').value||'';
+  const dq=q.replace(/[^\d]/g,''),toks=normAr(q).split(/\s+/).filter(Boolean);
+  const fams=data.filter(f=>{
+    if(!q)return true;
+    if(dq.length>=3&&/^[\d٠-٩\s]+$/.test(q))return [f.hId,f.wId].some(i=>i&&i.includes(dq));
+    const n=normAr(famName(f)+' '+(f.hName||'')+' '+(f.wName||''));
+    return toks.every(t=>n.includes(t));
+  }).sort(byName(famName));
+  const out=[];
+  fams.forEach(f=>aids.filter(a=>famsAlive(a).includes(f.id)&&(!fr||String(a.date)>=fr)&&(!to||String(a.date)<=to))
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(a=>out.push({a,f})));
+  return out;
+}
+function histPRun(){
+  histPOn=true;$('histPCard').classList.remove('hide');renderHistP();
+  $('histPCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderHistP(){
+  if(!histPOn)return;
+  const q=($('hpQ').value||'').trim(),fr=$('hpFrom').value||'',to=$('hpTo').value||'';
+  const rows=histPRows(),nf=new Set(rows.map(r=>r.f.id)).size;
+  const per=(fr||to)?('من '+(fr||'البداية')+' إلى '+(to||'اليوم')):'كل الفترات';
+  tTitle.histP='كشف الاستفادة'+(q?' — '+q:'')+' ('+per+')';
+  $('histPTitle').textContent=tTitle.histP;
+  hdrLine('pHeadHistP',tTitle.histP,rows.length);
+  const cash={};rows.forEach(r=>{if(r.a.kind==='cash'&&parseFloat(r.a.value)){const c=r.a.cur||'';cash[c]=(cash[c]||0)+parseFloat(r.a.value)}});
+  const cs=Object.keys(cash).map(c=>cash[c]+' '+c).join(' + ');
+  $('histPInfo').innerHTML='الفترة: <b>'+esc(per)+'</b> &nbsp;|&nbsp; عدد العائلات المستفيدة: <b>'+nf+'</b> &nbsp;|&nbsp; عدد الاستفادات: <b>'+rows.length+'</b>'+(cs?' &nbsp;|&nbsp; مجموع النقدي: <b>'+esc(cs)+'</b>':'');
+  $('histPTable').innerHTML=rows.length?tblHTML('histP',rows):'<p class="empty">ما في استفادة مطابقة بهاي الفترة.</p>';
+}
 const TABLES={
+ histP:{cols:HISTPCOLS,box:'pick_histP',el:'histPTable',file:'كشف_استفادة_فترة',rows:()=>histPRows(),render:()=>renderHistP()},
  prj:{cols:PRJCOLS,box:'pick_prj',el:'prjTable',file:'كشف_المشاريع',rows:()=>prjRows(),render:()=>renderPrj(),
    act:r=>`<button class="btn green small" onclick="prjView(${r.id})">👁️ المستفيدون</button> <button class="btn red small" onclick="prjDelete(${r.id})">🗑️</button>${noteQuick(r.id,'anp_')}`},
+ hist:{cols:HISTCOLS,box:'pick_hist',el:'histTable',file:'سجل_المستفيد',rows:()=>histRows(),render:()=>renderHist()},
  aid:{cols:AIDCOLS,box:'pick_aid',el:'aLog',file:'سجل_المساعدات',act:r=>`<button class="btn green small" onclick="aidView(${r.id})">👁️ المستفيدون</button> <button class="btn red small" onclick="aidDelete(${r.id})">🗑️</button>${noteQuick(r.id,'ana_')}`,rows:()=>aidRows(),render:()=>aidLog()},
  aidB:{cols:AIDBCOLS,box:'pick_aidB',el:'aidBTable',file:'مستفيدو_المساعدة',act:r=>`<button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button> <button class="btn red small" onclick="beRemove('aid',${r.id})">➖ إزالة من المساعدة</button>`,rows:()=>aidBenRows(),render:()=>renderAidB()},
  prjB:{cols:PRJBCOLS,box:'pick_prjB',el:'prjBTable',file:'مستفيدو_المشروع',act:r=>`<button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button> <button class="btn red small" onclick="beRemove('prj',${r.id})">➖ إزالة من المشروع</button>`,rows:()=>prjBenRows(),render:()=>renderPrjB()},
@@ -2375,6 +2536,13 @@ function excStrip(t){
 
 let colOff=load(COLKEY,{});if(!colOff||typeof colOff!=='object'||Array.isArray(colOff))colOff={};
 if(colOff.repG===undefined)colOff.repG=colOffDef.repG.slice();
+(function(){ /* سجل المستفيد: الأعمدة المكررة مخفية افتراضياً */
+  try{
+    if(localStorage.getItem('cols_mig_hist1'))return;
+    const a=colOff.hist||(colOff.hist=[]);['cats','val'].forEach(k=>{if(!a.includes(k))a.push(k)});
+    localStorage.setItem(COLKEY,JSON.stringify(colOff));localStorage.setItem('cols_mig_hist1','1');
+  }catch(e){}
+})();
 (function(){ /* كشف المستفيدين: الأعمدة الإضافية مخفية افتراضياً */
   try{
     if(localStorage.getItem('cols_mig_ben1'))return;
@@ -2606,6 +2774,13 @@ function exportXlsx(t){
 const ST_NAMES={m:'متزوج',w:'أرمل/ة',d:'مطلق/ة',a:'مهجورة',s:'أعزب/عزباء',o:'أيتام بدون والدين'};
 const fsSel=()=>[...document.querySelectorAll('.fsChk:checked')].map(c=>c.value);
 function fsClear(){document.querySelectorAll('.fsChk').forEach(c=>c.checked=false);renderList()}
+const fhSel=()=>[...document.querySelectorAll('.fhChk:checked')].map(c=>c.value);
+const fsecSel=()=>[...document.querySelectorAll('.fsecChk:checked')].map(c=>c.value);
+function fsecRender(){
+  const b=$('fSecBox');if(!b)return;
+  const cur=fsecSel();
+  b.innerHTML=SECTORS.map(x=>`<label><input type="checkbox" class="fsecChk" value="${esc(x)}" ${cur.includes(x)?'checked':''} onchange="renderList()">${esc(x)}</label>`).join('')||'<span class="sub">ما في قواطع</span>';
+}
 const headGender=d=>d.status==='متزوج'?'ذكر':genderOf(d.status);
 function fcChange(){
   const op=$('fcOp').value;
@@ -2614,13 +2789,14 @@ function fcChange(){
   $('fc1L').textContent=op==='bt'?'من عدد':'العدد';
 }
 function filtered(){
-  const sts=fsSel(),gd=$('fGender').value,sec=$('fSector').value,hs=$('fHouse').value,op=$('fcOp').value,v1=parseInt($('fc1').value),v2=parseInt($('fc2').value);
-  return data.filter(d=>(!sts.length||sts.includes(baseOf(d.status)))&&(!gd||headGender(d)===gd)&&(!sec||(hasSector(d)&&d.sector===sec))&&(!hs||d.house===hs)&&cmp(op,d.count,v1,v2)).sort(byName(famName));
+  const sts=fsSel(),gd=$('fGender').value,secs=fsecSel(),hs=fhSel(),op=$('fcOp').value,v1=parseInt($('fc1').value),v2=parseInt($('fc2').value);
+  return data.filter(d=>(!sts.length||sts.includes(baseOf(d.status)))&&(!gd||headGender(d)===gd)&&(!secs.length||(hasSector(d)&&secs.includes(d.sector)))&&(!hs.length||hs.includes(d.house))&&cmp(op,d.count,v1,v2)).sort(byName(famName));
 }
 function renderList(){
   const rows=filtered();
   const sts=fsSel();
-  tTitle.fam='كشف العائلات'+(sts.length?' ('+sts.map(x=>ST_NAMES[x]).join(' + ')+')':'')+'';
+  const hsx=fhSel(),secx=fsecSel();
+  tTitle.fam='كشف العائلات'+(sts.length?' ('+sts.map(x=>ST_NAMES[x]).join(' + ')+')':'')+(hsx.length?' — '+hsx.map(x=>x==='خيمة'?'مخيم':x).join(' + '):'')+(secx.length?' — قاطع '+secx.join(' + '):'');
   $('listTitle').textContent='عدد العائلات في الكشف: '+rows.length;
   hdrLine('pHeadList',tTitle.fam,rows.length);
   $('listTable').innerHTML=tblHTML('fam',rows);
@@ -3838,10 +4014,10 @@ function renderDash(){
 /* ================= تشغيل ================= */
 $('kidFormAdd').innerHTML=kidFields('ka');
 buildAddExtras();toggleBoxes();renderNewKids();pxMountAdd();pxLists();
-fillSectors('fSector','كل القواطع');fillSectors('spSector','كل القواطع');
+fillSectors('fSector','كل القواطع');fsecRender();fillSectors('spSector','كل القواطع');
 fillSectors('aSec','اختر القاطع...');fillSectors('rSector','كل القواطع');
 renderSecList();renderCampHdr();appLogos();renderDash();
-renderPick('fam');renderPick('kid');renderPick('prj');renderPick('prjB');fillSectors('pSec','اختر القاطع...');renderPick('spec');renderPick(repKey());
+renderPick('fam');renderPick('hist');renderPick('histP');renderPick('kid');renderPick('prj');renderPick('prjB');fillSectors('pSec','اختر القاطع...');renderPick('spec');renderPick(repKey());
 </script>
 <script>
 /* منتقي تاريخ بثلاث قوائم (يوم/شهر/سنة) بدل خانة التاريخ الأصلية — يحل مشكلة اللغة العربية بالجوال */
