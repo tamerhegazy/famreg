@@ -282,6 +282,13 @@ async function appUpdate(){
 <section id="add" class="hide">
   <div class="card">
     <h2>إضافة عائلة جديدة</h2>
+    <div style="background:#f3f0ff;border:1px solid #d0bfff;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:bold"><input type="checkbox" id="swOn" onchange="swToggle()"> 💍 هاي زوجة ثانية / ثالثة لزوج مسجّل</label>
+      <div id="swBox" class="hide" style="margin-top:8px">
+        <input type="text" id="swQ" maxlength="60" oninput="dbc(swSearch)" placeholder="اسم الزوج أو رقم هويته">
+        <div id="swRes" style="margin-top:6px"></div>
+      </div>
+    </div>
     <label>الحالة الاجتماعية</label>
     <div class="radios" id="baseBox">
       <label><input type="radio" name="base" value="m" checked onchange="toggleBoxes()">متزوج/ة</label>
@@ -1869,13 +1876,31 @@ function resetAddForm(){
   ['hName','hId','hDob','wName','wId','wDob','mob1','mob2','notes','payType'].forEach(i=>$(i).value='');
   document.querySelector('input[name=base][value=m]').checked=true;
   document.querySelectorAll('input[name=gender]').forEach(r=>r.checked=false);
+  if($('swOn')){$('swOn').checked=false;swToggle();$('swQ').value=''}
   newKids=[];newAtt.length=0;
   renderNewKids();closeKidForm();buildAddExtras();toggleBoxes();pxMountAdd();
 }
 
+function swToggle(){const on=$('swOn').checked;$('swBox').classList.toggle('hide',!on);if(on){$('swQ').focus();swSearch()}else $('swRes').innerHTML=''}
+function swSearch(){
+  const q=$('swQ').value.trim(),box=$('swRes');
+  if(!q){box.innerHTML='<p class="sub">اكتب اسم الزوج أو هويته وبتطلع النتائج.</p>';return}
+  const dq=q.replace(/[^\d]/g,''),toks=normAr(q).split(/\s+/).filter(Boolean);
+  const seen=new Set();
+  const rows=data.filter(f=>f.hName&&f.hId&&(dq.length>=3&&/^[\d٠-٩\s]+$/.test(q)?f.hId.includes(dq):toks.every(t=>normAr(f.hName).includes(t)))).filter(f=>seen.has(f.hId)?false:(seen.add(f.hId),true)).sort(byName(f=>f.hName)).slice(0,15);
+  box.innerHTML=rows.length?rows.map(f=>{const n=data.filter(d=>d.hId===f.hId).length;return `<div class="pick"><span>${esc(f.hName)} (${esc(f.hId)}) • مسجّل بـ <b>${n}</b> عائلة</span><button class="pk" type="button" onclick="swPick(${f.id})">✔ اختيار</button></div>`}).join(''):'<p class="sub">ما في زوج مسجّل بهالاسم.</p>';
+}
+function swPick(id){
+  const r=data.find(d=>d.id===id);if(!r)return;
+  document.querySelector('input[name=base][value=m]').checked=true;toggleBoxes();
+  $('hName').value=r.hName;$('hId').value=r.hId;$('hDob').value=r.hDob||'';
+  $('swRes').innerHTML='<p class="sub">✔ تم اختيار الزوج: <b>'+esc(r.hName)+'</b>. اكتب بيانات الزوجة الثانية تحت.</p>';
+  setTimeout(()=>{try{$('wName').focus()}catch(e){}},200);
+}
 function addSecondWife(id){
   const r=data.find(d=>d.id===id);if(!r)return;
   show('add');resetAddForm();
+  $('swOn').checked=true;swToggle();
   $('hName').value=r.hName;$('hId').value=r.hId;$('hDob').value=r.hDob||'';
   if($('hId').dispatchEvent)$('hId').dispatchEvent(new Event('input'));
   const ho=document.querySelector('input[name=house][value="'+r.house+'"]');
