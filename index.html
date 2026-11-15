@@ -14,7 +14,7 @@
 <title>برنامج تسجيل العائلات - مخيم فلسطين تل الهوا</title>
 <script>
 /* ===== رقم الإصدار + تحديث تلقائي (للجوال) ===== */
-var APP_VER='14-11';
+var APP_VER='15-11';
 async function appUpdate(){
   try{
     if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister()}
@@ -532,9 +532,24 @@ async function appUpdate(){
         <label>نوع الحالة الثانوية</label>
         <select id="spOther" onchange="renderSpec()"></select>
       </div>
+      <div id="spDsbBox" class="hide">
+        <label>نوع الإعاقة</label>
+        <select id="spDsb" onchange="renderSpec()"><option value="">كل حالات الإعاقة</option><option>حركي</option><option>سمعي</option><option>بصري</option><option>ذهني</option><option>نطق وكلام</option><option>نفسي</option><option>متعدد</option></select>
+      </div>
       <div>
         <label>القاطع</label>
         <select id="spSector" onchange="renderSpec()"></select>
+      </div>
+      <div id="spAgeBox" class="hide" style="grid-column:1/-1">
+        <label>🎂 فلتر العمر (اختياري — اترك فاضي للكل)</label>
+        <div class="acts" style="align-items:center">
+          من <input type="number" id="spA1" min="0" style="max-width:80px" oninput="dbc(renderSpec)">
+          <select id="spU1" style="max-width:90px" onchange="renderSpec()"><option value="y">سنة</option><option value="m">شهر</option><option value="d">يوم</option></select>
+          إلى <input type="number" id="spA2" min="0" style="max-width:80px" oninput="dbc(renderSpec)">
+          <select id="spU2" style="max-width:90px" onchange="renderSpec()"><option value="y">سنة</option><option value="m">شهر</option><option value="d">يوم</option></select>
+          <button type="button" class="btn gray small" onclick="['spA1','spA2'].forEach(i=>$(i).value='');renderSpec()">مسح العمر</button>
+        </div>
+        <p class="sub" style="margin:4px 0 0">أمثلة: من 0 يوم إلى 1 سنة | من 18 إلى 60 سنة | أكثر من 60: اكتب 60 بخانة "من" واترك "إلى" فاضية.</p>
       </div>
     </div>
   </div>
@@ -935,6 +950,7 @@ async function appUpdate(){
 <div style="text-align:center;font-size:11px;color:#8a97a5;margin-top:6px">رمز الجهاز: <span id="devIdTxt" dir="ltr">-</span></div></footer>
 
 <!-- نوافذ -->
+<div class="modal" id="recModal"><div class="in" style="text-align:right;width:min(640px,96vw)" id="recIn"></div></div>
 <div class="modal" id="camModal"><div class="in">
   <video id="camVid" autoplay playsinline muted></video>
   <div class="acts" style="justify-content:center;margin-top:10px;align-items:center">
@@ -1367,7 +1383,7 @@ function xPlain(x,dob,gender){
   if(x.sick)o.push('مريض'+((x.dis||[]).length?': '+x.dis.join('، '):''));
   if(x.inj)o.push('مصاب'+(x.injNote?': '+x.injNote:''));
   if(x.preg)o.push('حامل');if(x.nurs)o.push('مرضعة');
-  if(x.dsb)o.push('إعاقة'+(x.dsbNote?': '+x.dsbNote:''));
+  if(x.dsb)o.push(dsbTxt(x));
   if(x.oth)o.push('حالة ثانوية: '+x.oth);
   if(x.job)o.push('عمل: '+x.job);
   const e=x.eu||{};
@@ -2327,7 +2343,7 @@ function allPersons(f){
   (f.children||[]).forEach(k=>out.push({f,key:String(k.id),p:personOf(f,k.id)}));
   return out;
 }
-const spcText=x=>x?[x.preg?'حامل':'',x.nurs?'مرضعة':'',x.dsb?('إعاقة'+(x.dsbNote?': '+x.dsbNote:'')):'',x.oth||''].filter(Boolean).join('، '):'';
+const spcText=x=>x?[x.preg?'حامل':'',x.nurs?'مرضعة':'',x.dsb?dsbTxt(x):'',x.oth||''].filter(Boolean).join('، '):'';
 const PSPEC=['sick','inj','preg','nurs','dis','other'];
 const SPECPCOLS=[
  {k:'n',l:'#',v:(r,i)=>i+1,c:'num'},
@@ -2347,25 +2363,47 @@ const SPECPCOLS=[
  {k:'hold',l:'السكن السابق (تفاصيل)',v:r=>r.f.oldHouse||'-',c:'wide'},
  {k:'sup',l:'الإعالة (أعزب/عزباء)',v:r=>supTxt(r.f),c:'wide'}
 ];
+function ageIn(dob,u){
+  const m=String(dob||'').match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return null;
+  const n=new Date(),y=+m[1],mo=+m[2]-1,d=+m[3];
+  if(u==='d'){const t=Math.floor((new Date(n.getFullYear(),n.getMonth(),n.getDate())-new Date(y,mo,d))/864e5);return t<0?null:t}
+  let mm=(n.getFullYear()-y)*12+(n.getMonth()-mo)-(n.getDate()<d?1:0);if(mm<0)return null;
+  return u==='m'?mm:Math.floor(mm/12);
+}
+function spAgeOn(){return $('spA1')&&($('spA1').value!==''||$('spA2').value!=='')}
+function spAgeOk(dob){
+  if(!spAgeOn())return true;
+  const a1=$('spA1').value,a2=$('spA2').value;
+  if(!dob)return false;
+  if(a1!==''){const v=ageIn(dob,$('spU1').value);if(v==null||v<+a1)return false}
+  if(a2!==''){const v=ageIn(dob,$('spU2').value);if(v==null||v>+a2)return false}
+  return true;
+}
+function spAgeTxt(){
+  if(!spAgeOn())return '';
+  const U={y:'سنة',m:'شهر',d:'يوم'},a1=$('spA1').value,a2=$('spA2').value;
+  return ' — العمر: '+(a1!==''?'من '+a1+' '+U[$('spU1').value]:'')+(a2!==''?' إلى '+a2+' '+U[$('spU2').value]:(a1!==''?' فأكثر':''));
+}
 function specPRows(type){
-  const sec=$('spSector').value,dsel=$('spDis')?$('spDis').value:'',osel=$('spOther').value,out=[];
+  const sec=$('spSector').value,dsel=$('spDis')?$('spDis').value:'',osel=$('spOther').value,tsel=$('spDsb')?$('spDsb').value:'',ageOn=spAgeOn(),out=[];
   data.forEach(f=>{
     if(sec&&!(hasSector(f)&&f.sector===sec))return;
     let any=false;
     allPersons(f).forEach(({key,p})=>{
       const x=p.x||{};let d=null;
+      if(ageOn&&!spAgeOk(p.dob))return;
       if(type==='sick'&&x.sick&&(!dsel||(x.dis||[]).some(z=>normAr(z)===normAr(dsel))))d='مريض'+((x.dis||[]).length?': '+x.dis.join('، '):'');
       else if(type==='inj'&&x.inj)d='مصاب'+(x.injNote?': '+x.injNote:'');
       else if(type==='preg'&&x.preg)d='حامل';
       else if(type==='nurs'&&x.nurs){d='مرضعة';any=true}
-      else if(type==='dis'&&x.dsb){d='إعاقة'+(x.dsbNote?': '+x.dsbNote:'');any=true}
+      else if(type==='dis'&&x.dsb){any=true;if(!tsel||(x.dsbT||[]).includes(tsel)||normAr(x.dsbNote||'').includes(normAr(tsel)))d=dsbTxt(x)}
       else if(type==='other'&&x.oth){any=true;if(!osel||x.oth===osel)d=x.oth}
       if(d)out.push({f,key,p,d});
     });
     const fam={name:'(على مستوى الأسرة)',nid:'',dob:'',gender:'',role:'الأسرة',x:null};
-    if(!any){
+    if(!any&&!ageOn){
       if(type==='nurs'&&f.cases.nurs)out.push({f,key:'',p:fam,d:'مرضعة'});
-      if(type==='dis'&&f.cases.dis)out.push({f,key:'',p:fam,d:'إعاقة'+(f.cases.disNote?': '+f.cases.disNote:'')});
+      if(type==='dis'&&f.cases.dis&&(!tsel||normAr(f.cases.disNote||'').includes(normAr(tsel))))out.push({f,key:'',p:fam,d:'إعاقة'+(f.cases.disNote?': '+f.cases.disNote:'')});
       if(type==='other'&&f.cases.other&&(!osel||f.cases.other===osel))out.push({f,key:'',p:fam,d:f.cases.other});
     }
   });
@@ -2514,9 +2552,9 @@ function renderHistP(){
 const TABLES={
  histP:{cols:HISTPCOLS,box:'pick_histP',el:'histPTable',file:'كشف_استفادة_فترة',rows:()=>histPRows(),render:()=>renderHistP()},
  prj:{cols:PRJCOLS,box:'pick_prj',el:'prjTable',file:'كشف_المشاريع',rows:()=>prjRows(),render:()=>renderPrj(),
-   act:r=>`<button class="btn green small" onclick="prjView(${r.id})">👁️ المستفيدون</button> <button class="btn red small" onclick="prjDelete(${r.id})">🗑️</button>${noteQuick(r.id,'anp_')}`},
+   act:r=>`<button class="btn green small" onclick="prjView(${r.id})">👁️ المستفيدون</button> <button class="btn orange small" onclick="recEdit(${r.id})">✏️ تعديل</button> <button class="btn red small" onclick="prjDelete(${r.id})">🗑️</button>${noteQuick(r.id,'anp_')}`},
  hist:{cols:HISTCOLS,box:'pick_hist',el:'histTable',file:'سجل_المستفيد',rows:()=>histRows(),render:()=>renderHist()},
- aid:{cols:AIDCOLS,box:'pick_aid',el:'aLog',file:'سجل_المساعدات',act:r=>`<button class="btn green small" onclick="aidView(${r.id})">👁️ المستفيدون</button> <button class="btn red small" onclick="aidDelete(${r.id})">🗑️</button>${noteQuick(r.id,'ana_')}`,rows:()=>aidRows(),render:()=>aidLog()},
+ aid:{cols:AIDCOLS,box:'pick_aid',el:'aLog',file:'سجل_المساعدات',act:r=>`<button class="btn green small" onclick="aidView(${r.id})">👁️ المستفيدون</button> <button class="btn orange small" onclick="recEdit(${r.id})">✏️ تعديل</button> <button class="btn red small" onclick="aidDelete(${r.id})">🗑️</button>${noteQuick(r.id,'ana_')}`,rows:()=>aidRows(),render:()=>aidLog()},
  aidB:{cols:AIDBCOLS,box:'pick_aidB',el:'aidBTable',file:'مستفيدو_المساعدة',act:r=>`<button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button> <button class="btn red small" onclick="beRemove('aid',${r.id})">➖ إزالة من المساعدة</button>`,rows:()=>aidBenRows(),render:()=>renderAidB()},
  prjB:{cols:PRJBCOLS,box:'pick_prjB',el:'prjBTable',file:'مستفيدو_المشروع',act:r=>`<button class="btn orange small" onclick="manage(${r.id})">⚙️ تعديل / حذف</button> <button class="btn red small" onclick="beRemove('prj',${r.id})">➖ إزالة من المشروع</button>`,rows:()=>prjBenRows(),render:()=>renderPrjB()},
  fam:{cols:FAMCOLS,box:'pick_fam',el:'listTable',file:'كشف_العائلات',manage:true,rows:()=>filtered(),render:()=>renderList()},
@@ -2923,6 +2961,8 @@ function specChange(){
   renderPick(specKey());
   $('spOtherBox').classList.toggle('hide',type!=='other');
   $('spDisBox').classList.toggle('hide',type!=='sick');
+  $('spDsbBox').classList.toggle('hide',type!=='dis');
+  $('spAgeBox').classList.toggle('hide',!PSPEC.includes(type));
   if(type==='sick'){
     const cur=$('spDis').value,vals=allDis();
     $('spDis').innerHTML='<option value="">كل الأمراض</option>'+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
@@ -2948,8 +2988,9 @@ function renderSpec(){
   }
   if(PSPEC.includes(type)){
     const pr=specPRows(type);
-    tTitle.specP='كشف '+SP_NAMES[type]+(type==='sick'&&$('spDis').value?' ('+$('spDis').value+')':'');
-    $('specTitle').textContent=SP_NAMES[type]+(type==='sick'&&$('spDis').value?' ('+$('spDis').value+')':'')+' — عدد الأشخاص: '+pr.length+' (من '+new Set(pr.map(x=>x.f.id)).size+' عائلة)';
+    const dsx=type==='sick'&&$('spDis').value?' ('+$('spDis').value+')':type==='dis'&&$('spDsb').value?' ('+$('spDsb').value+')':'';
+    tTitle.specP='كشف '+SP_NAMES[type]+dsx+spAgeTxt();
+    $('specTitle').textContent=SP_NAMES[type]+dsx+spAgeTxt()+' — عدد الأشخاص: '+pr.length+' (من '+new Set(pr.map(x=>x.f.id)).size+' عائلة)';
     hdrLine('pHeadSpec',tTitle.specP,pr.length);
     $('specTable').innerHTML=tblHTML('specP',pr);
     return;
@@ -3180,6 +3221,67 @@ function addAidNote(id,pre){
   a.note=(a.note?a.note+'\n':'')+'['+today()+'] '+t;
   saveAids();aidLog();renderPrj();if(prjViewId)renderPrjB();if(aidViewId)renderAidB();
   notify('تم حفظ الملاحظة',true);
+}
+let recId=null;
+function recEdit(id){
+  const a=aids.find(x=>x.id===id);if(!a)return;recId=id;
+  const isP=!!a.name,curs=['₪ شيكل','$ دولار','دينار أردني'];if(a.cur&&!curs.includes(a.cur))curs.push(a.cur);
+  const cats=allCats().concat((a.cats||[]).filter(c=>!allCats().includes(c)));
+  $('recIn').innerHTML=`<h3 style="margin-top:0">✏️ تعديل ${isP?'المشروع':'المساعدة'}</h3>
+  ${isP?`<label>اسم المشروع</label><input type="text" id="re_name" maxlength="120" value="${esc(a.name)}">`:''}
+  <label>نوع الاستفادة</label>
+  <div class="radios"><label><input type="radio" name="re_kind" value="cash" ${a.kind==='cash'?'checked':''} onchange="recKind()">💵 نقدية</label><label><input type="radio" name="re_kind" value="inkind" ${a.kind!=='cash'?'checked':''} onchange="recKind()">📦 عينية (طرود)</label></div>
+  <div id="re_catsBox"><label>محتوى الطرد</label><div class="radios">${cats.map((c,i)=>`<label style="padding:6px 12px"><input type="checkbox" class="re_cat" value="${esc(c)}" ${(a.cats||[]).includes(c)?'checked':''}>${esc(c)}</label>`).join('')}</div></div>
+  <div class="row3">
+    <div><label>القيمة (لكل أسرة)</label><input type="number" id="re_val" min="0" step="any" value="${a.value||''}"></div>
+    <div><label>العملة</label><select id="re_cur">${curs.map(c=>`<option ${c===a.cur?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+    ${isP?`<div id="re_totBox"><label>قيمة المشروع كامل (نقدي)</label><input type="number" id="re_tot" min="0" step="any" value="${a.total||''}"></div>
+    <div id="re_parBox"><label>عدد طرود المشروع</label><input type="number" id="re_par" min="0" value="${a.parcels||''}"></div>
+    <div id="re_parPerBox"><label>الطرود لكل أسرة</label><input type="number" id="re_parPer" min="0" value="${a.parPer||''}"></div>`:''}
+    <div><label>المؤسسة الممولة</label><input type="text" id="re_org" maxlength="120" value="${esc(a.org)}"></div>
+    <div><label>مكان الاستلام</label><input type="text" id="re_place" maxlength="120" value="${esc(a.place||'')}"></div>
+    <div><label>التاريخ</label><input type="date" lang="en-GB" id="re_date" value="${esc(a.date)}"></div>
+  </div>
+  <label>ملاحظات</label><textarea id="re_note" rows="3" maxlength="800">${esc(a.note||'')}</textarea>
+  <p class="sub">تعديل العائلات المستفيدة: من زر "👁️ المستفيدون" (إضافة / إزالة).</p>
+  <div class="acts" style="margin-top:8px"><button class="btn green" onclick="recSave()">💾 حفظ التعديل</button><button class="btn gray" onclick="$('recModal').classList.remove('on')">إلغاء</button></div>`;
+  recKind();
+  $('recModal').classList.add('on');
+}
+function recKind(){
+  const k=document.querySelector('input[name=re_kind]:checked').value;
+  $('re_catsBox').classList.toggle('hide',k!=='inkind');
+  ['re_totBox'].forEach(i=>{if($(i))$(i).classList.toggle('hide',k!=='cash')});
+  ['re_parBox','re_parPerBox'].forEach(i=>{if($(i))$(i).classList.toggle('hide',k!=='inkind')});
+}
+function recSave(){
+  const a=aids.find(x=>x.id===recId);if(!a)return;
+  const kind=document.querySelector('input[name=re_kind]:checked').value,isP=!!a.name;
+  const cats=[...document.querySelectorAll('.re_cat:checked')].map(e=>e.value);
+  const val=$('re_val').value.trim(),org=$('re_org').value.trim().replace(/\s+/g,' '),place=$('re_place').value.trim().replace(/\s+/g,' '),date=$('re_date').value;
+  const name=isP?$('re_name').value.trim().replace(/\s+/g,' '):'';
+  const err=m=>{notify(m,false);return};
+  if(isP&&name.length<3)return err('اكتب اسم المشروع (3 أحرف على الأقل)');
+  if(kind==='inkind'&&!cats.length)return err('اختر نوع واحد على الأقل من محتوى الطرد');
+  if(val&&!(parseFloat(val)>=0))return err('القيمة لازم تكون رقم');
+  if(!isP&&kind==='cash'&&!(parseFloat(val)>0))return err('اكتب قيمة المساعدة النقدية');
+  if(org.length<2)return err('اكتب اسم المؤسسة الممولة');
+  if(!isP&&place.length<2)return err('اكتب مكان الاستلام');
+  if(!date)return err('اختر التاريخ');
+  if(date>today())return err('التاريخ لا يمكن أن يكون في المستقبل');
+  if(isP&&aids.some(x=>x.id!==a.id&&x.name&&normAr(x.name)===normAr(name)&&x.date===date))return err('في مشروع بنفس الاسم والتاريخ مسجل من قبل');
+  const old=JSON.stringify(a);
+  Object.assign(a,{kind,cats:kind==='inkind'?cats:[],value:val?parseFloat(val):0,cur:$('re_cur').value,org,place,date,note:$('re_note').value.trim()});
+  if(isP){a.name=name;const t=$('re_tot').value.trim(),p=$('re_par').value.trim(),pp=$('re_parPer').value.trim();
+    a.total=kind==='cash'&&t?parseFloat(t):0;a.parcels=kind==='inkind'&&p?parseInt(p):0;a.parPer=kind==='inkind'&&pp?parseInt(pp):0}
+  if(!saveAids()){Object.keys(a).forEach(k=>delete a[k]);Object.assign(a,JSON.parse(old));return}
+  $('recModal').classList.remove('on');
+  recRefresh();notify('تم حفظ التعديل',true);
+}
+function recRefresh(){
+  try{aidLog()}catch(e){}try{renderPrj()}catch(e){}
+  try{if(aidViewId)renderAidB()}catch(e){}try{if(prjViewId)renderPrjB()}catch(e){}
+  try{if(histFamId)renderHist()}catch(e){}try{renderHistP()}catch(e){}
 }
 function aidDelete(id){
   const a=aids.find(x=>x.id===id);if(!a)return;
@@ -3742,12 +3844,14 @@ function pxLists(){
 }
 function learnDis(d){d=String(d||'').trim().replace(/\s+/g,' ');if(d.length<2)return '';const ex=allDis().find(z=>normAr(z)===normAr(d));if(ex)return ex;customDis.push(d);lsSet('diseases_v1',customDis);pxLists();return d}
 function learnMaj(m,g){m=String(m||'').trim().replace(/\s+/g,' ');if(m.length<2)return m;const ex=allMaj(g).find(z=>normAr(z)===normAr(m));if(ex)return ex;if(g==='dip'){customMajD.push(m);lsSet('majors_dip_v1',customMajD)}else{customMaj.push(m);lsSet('majors_v1',customMaj)}pxLists();return m}
+const DSB_TYPES=['حركي','سمعي','بصري','ذهني','نطق وكلام','نفسي','متعدد'];
+const dsbTxt=x=>{const t=(x.dsbT||[]).join('، '),n=x.dsbNote||'';return 'إعاقة'+((t||n)?': '+[t,n].filter(Boolean).join(' — '):'')};
 const PX={};
 function pxNorm(o){
   if(!o.eu||typeof o.eu!=='object')o.eu={st:'',stage:'',deg:'',maj:''};
   ['st','stage','deg','maj'].forEach(k=>{if(o.eu[k]==null)o.eu[k]=''});
   if(!Array.isArray(o.dis))o.dis=[];
-  o.preg=!!o.preg;o.nurs=!!o.nurs;o.dsb=!!o.dsb;if(o.dsbNote==null)o.dsbNote='';if(o.oth==null)o.oth='';
+  o.preg=!!o.preg;o.nurs=!!o.nurs;o.dsb=!!o.dsb;if(o.dsbNote==null)o.dsbNote='';if(!Array.isArray(o.dsbT))o.dsbT=[];if(o.oth==null)o.oth='';
   o.sick=!!o.sick;o.inj=!!o.inj;if(o.injNote==null)o.injNote='';if(o.job==null)o.job='';if(o.note==null)o.note='';
   return o;
 }
@@ -3775,7 +3879,7 @@ function pxInner(p){
    h+=`<div style="grid-column:1/-1"><label>حالات خاصة لهذا الشخص (اختياري)</label><div class="radios">
      ${fem&&(age==null||age>=12)?`<label style="padding:6px 12px"><input type="checkbox" ${o.preg?'checked':''} onchange="pxSet('${p}','preg',this.checked)">🤰 حامل</label><label style="padding:6px 12px"><input type="checkbox" ${o.nurs?'checked':''} onchange="pxSet('${p}','nurs',this.checked)">🍼 مرضعة</label>`:''}
      <label style="padding:6px 12px"><input type="checkbox" ${o.dsb?'checked':''} onchange="pxSet('${p}','dsb',this.checked)">♿ إعاقة</label></div>
-     ${o.dsb?`<input type="text" maxlength="100" placeholder="نوع الإعاقة (اختياري)" value="${esc(o.dsbNote)}" oninput="PX['${p}'].o.dsbNote=this.value" style="margin-top:6px">`:''}
+     ${o.dsb?`<label style="margin-top:6px">نوع الإعاقة (فيك تختار أكثر من نوع)</label><div class="radios">${DSB_TYPES.map(t=>`<label style="padding:6px 12px"><input type="checkbox" ${o.dsbT.includes(t)?'checked':''} onchange="pxSet('${p}','dsbT','${t}')">${t}</label>`).join('')}</div><input type="text" maxlength="100" placeholder="تفاصيل أو نوع ثاني (اختياري)" value="${esc(o.dsbNote)}" oninput="PX['${p}'].o.dsbNote=this.value" style="margin-top:6px">`:''}
      <input type="text" maxlength="80" placeholder="حالة ثانوية أخرى (اكتب اللي تريده)" value="${esc(o.oth)}" oninput="PX['${p}'].o.oth=this.value" style="margin-top:6px"></div>`}
   if(age==null)h+=`<div style="grid-column:1/-1"><p class="sub">أدخل تاريخ الميلاد لتظهر خيارات المؤهل العلمي.</p></div>`;
   else if(age>=6){
@@ -3799,7 +3903,8 @@ function pxSet(p,k,v){
   else if(k==='hs'){o.sick=v==='1';o.inj=v==='2';if(!o.sick)o.dis=[];if(!o.inj)o.injNote='';pxRefresh(p)}
   else if(k==='job'){o.job=v}
   else if(k==='preg'||k==='nurs'){o[k]=!!v}
-  else if(k==='dsb'){o.dsb=!!v;if(!v)o.dsbNote='';pxRefresh(p)}
+  else if(k==='dsb'){o.dsb=!!v;if(!v){o.dsbNote='';o.dsbT=[]}pxRefresh(p)}
+  else if(k==='dsbT'){const i=o.dsbT.indexOf(v);if(i>=0)o.dsbT.splice(i,1);else o.dsbT.push(v)}
   else if(k==='sick'){o.sick=!!v;if(!v)o.dis=[];pxRefresh(p)}
   else if(k==='est'){o.eu={st:v,stage:'',deg:'',maj:''};pxRefresh(p)}
   else if(k==='stage'){e.stage=v;e.deg='';e.maj='';pxRefresh(p)}
@@ -3842,7 +3947,7 @@ function pxSumHTML(x,dob,note,gender){
   const out=[];
   if(x.preg)out.push('🤰 حامل');
   if(x.nurs)out.push('🍼 مرضعة');
-  if(x.dsb)out.push('♿ إعاقة'+(x.dsbNote?': '+esc(x.dsbNote):''));
+  if(x.dsb)out.push('♿ '+esc(dsbTxt(x)));
   if(x.oth)out.push('📌 '+esc(x.oth));
   if(x.inj)out.push('<span style="color:#d9480f">🩹 مصاب'+(x.injNote?': '+esc(x.injNote):'')+'</span>');
   if(x.job&&ageOf(dob)!=null&&ageOf(dob)>=18)out.push('💼 '+jobLabel(x.job,gender));
