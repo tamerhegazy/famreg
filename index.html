@@ -14,7 +14,7 @@
 <title>برنامج تسجيل العائلات - مخيم فلسطين تل الهوا</title>
 <script>
 /* ===== رقم الإصدار + تحديث تلقائي (للجوال) ===== */
-var APP_VER='18-11';
+var APP_VER='20-11';
 async function appUpdate(){
   try{
     if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister()}
@@ -954,6 +954,13 @@ async function appUpdate(){
 <div style="text-align:center;font-size:11px;color:#8a97a5;margin-top:6px">رمز الجهاز: <span id="devIdTxt" dir="ltr">-</span></div></footer>
 
 <!-- نوافذ -->
+<div class="modal" id="nameModal" style="z-index:9800"><div class="in" style="text-align:right;width:min(460px,94vw)">
+  <h3 style="margin-top:0">💾 اسم الملف</h3>
+  <p class="sub" style="margin:0 0 6px">اكتب الاسم اللي بدك إياه عشان تلاقي الملف بسهولة.</p>
+  <div style="display:flex;gap:6px;align-items:center;direction:ltr"><span id="nmExt" style="font-weight:bold"></span><input type="text" id="nmIn" maxlength="100" style="direction:rtl;flex:1"></div>
+  <div class="acts" style="margin-top:10px"><button class="btn green" id="nmOk">💾 حفظ</button><button class="btn gray" id="nmNo">إلغاء</button></div>
+</div></div>
+<div id="fileBar" class="noprint hide" style="position:fixed;bottom:10px;left:10px;right:10px;z-index:9700;background:#fff;border:2px solid #2b8a3e;border-radius:12px;padding:10px 12px;box-shadow:0 4px 18px #0004"></div>
 <div class="modal" id="recModal"><div class="in" style="text-align:right;width:min(640px,96vw)" id="recIn"></div></div>
 <div class="modal" id="camModal"><div class="in">
   <video id="camVid" autoplay playsinline muted></video>
@@ -1471,11 +1478,49 @@ function cmpExport(){
   const aoa=[['النوع','العائلة','رقم الهوية','التفاصيل'],...cmpRows];
   const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=[{wch:16},{wch:28},{wch:14},{wch:90}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الفروقات');wb.Workbook={Views:[{RTL:true}]};
-  XLSX.writeFile(wb,'مقارنة_النسخ_'+today()+'.xlsx');notify('تم تصدير الفروقات',true);
+  xlsxOut(wb,'مقارنة_النسخ.xlsx').then(ok=>{if(ok)notify('تم تصدير الفروقات',true)});
 }
 
 /* ================= حفظ / مشاركة / سكنر للمرفقات ================= */
 let curAtt='';
+function askFileName(def){
+  return new Promise(res=>{
+    const m=$('nameModal'),em=def.match(/\.[^.\/]+$/),ext=em?em[0]:'';
+    let base=def.slice(0,def.length-ext.length);if(!base.includes(today()))base+='_'+today();
+    $('nmExt').textContent=ext;$('nmIn').value=base;m.classList.add('on');
+    setTimeout(()=>{try{$('nmIn').focus();$('nmIn').select()}catch(e){}},60);
+    const fin=v=>{m.classList.remove('on');$('nmOk').onclick=$('nmNo').onclick=$('nmIn').onkeydown=null;res(v)};
+    $('nmOk').onclick=()=>{const n=$('nmIn').value.trim().replace(/[\\/:*?"<>|]+/g,'_');if(!n)return notify('اكتب اسم للملف',false);fin(n+ext)};
+    $('nmNo').onclick=()=>fin(null);
+    $('nmIn').onkeydown=e=>{if(e.key==='Enter')$('nmOk').click();if(e.key==='Escape')fin(null)};
+  });
+}
+let fileBarUrl=null;
+function fileBarClose(){$('fileBar').classList.add('hide');if(fileBarUrl){URL.revokeObjectURL(fileBarUrl);fileBarUrl=null}}
+async function fileBarOpen(){
+  const o=window._lastOut;if(!o)return;
+  if(o.path&&window.desktop&&window.desktop.openFile)return window.desktop.openFile(o.path);
+  try{const f=new File([o.blob],o.name,{type:o.blob.type});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:o.name});return}}catch(e){if(e&&e.name==='AbortError')return}
+  if(fileBarUrl)URL.revokeObjectURL(fileBarUrl);
+  fileBarUrl=URL.createObjectURL(o.blob);
+  const a=document.createElement('a');a.href=fileBarUrl;a.target='_blank';a.rel='noopener';a.download=o.name;document.body.appendChild(a);a.click();a.remove();
+}
+function showFileBar(o){
+  window._lastOut=o;
+  $('fileBar').innerHTML=`<div style="font-weight:bold;margin-bottom:6px">✔ تم حفظ الملف: <span dir="auto">${esc(o.name)}</span></div>${o.path?`<div class="sub" style="margin:0 0 6px;word-break:break-all" dir="ltr">${esc(o.path)}</div>`:'<div class="sub" style="margin:0 0 6px">انحفظ بمجلد التنزيلات (Downloads) على الجهاز.</div>'}
+  <div class="acts"><button class="btn green small" onclick="fileBarOpen()">📂 فتح الملف</button>${o.path?`<button class="btn gray small" onclick="window.desktop.showFile(window._lastOut.path)">📁 إظهار بالمجلد</button>`:''}<button class="btn gray small" onclick="fileBarClose()">✕ إغلاق</button></div>`;
+  $('fileBar').classList.remove('hide');
+}
+async function saveOut(blob,def){
+  const name=await askFileName(def);if(!name)return false;
+  if(window.desktop&&window.desktop.saveFile){
+    try{const r=await window.desktop.saveFile(name,new Uint8Array(await blob.arrayBuffer()));showFileBar({name:r.name,path:r.path,blob});return true}catch(e){}
+  }
+  dlBlob(blob,name);showFileBar({name,blob});return true;
+}
+const XMIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+async function xlsxOut(wb,name){const o=XLSX.write(wb,{bookType:'xlsx',type:'array'});return saveOut(new Blob([o],{type:XMIME}),name)}
 function dlBlob(blob,name){
   const u=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
@@ -2695,17 +2740,19 @@ function manage(id){
 /* ---------- PDF ---------- */
 function specKey(){const t=$('spType').value;return t==='elder'?'specE':PSPEC.includes(t)?'specP':'spec'}
 function tableKey(t){return t==='rep'?repKey():t==='spec'?specKey():t}
-function doPdf(t){
+async function doPdf(t){
   const key=tableKey(t);
   if(!activeCols(key).length)return notify('اختر عمود واحد على الأقل ليظهر في PDF',false);
+  const pname=await askFileName((TABLES[key].file||'كشف')+'.pdf');if(!pname)return;
   document.body.dataset.pr=key;
   const pch=tblPrintPrep();
   const done=()=>{delete document.body.dataset.pr;tblPrintDone(pch)};
   if(window.desktop&&window.desktop.pdf){
-    window.desktop.pdf().then(()=>notify('انفتح الكشف كملف PDF. منه تقدر تحفظه أو تطبعه.',true)).catch(()=>notify('تعذّر إنشاء ملف PDF',false)).finally(done);
+    window.desktop.pdf(pname).then(r=>{if(r&&r.path)showFileBar({name:r.name,path:r.path})}).catch(()=>notify('تعذّر إنشاء ملف PDF',false)).finally(done);
   }else{
-    notify('اختر "Save as PDF" من نافذة الطباعة',true);
-    try{window.print()}finally{done()}
+    notify('اختر "Save as PDF" من نافذة الطباعة — اسم الملف جاهز',true);
+    const ot=document.title;document.title=pname.replace(/\.pdf$/,'');
+    try{window.print()}finally{document.title=ot;done()}
   }
 }
 
@@ -2714,7 +2761,7 @@ function doPdf(t){
 /* حفظ Excel مع الشعار (بيُدمج كصورة داخل الملف) */
 async function xlsxSave(wb,name,n,cols){
   const done=()=>notify('تم تصدير ملف Excel',true);
-  if(!hdr.logo||typeof JSZip==='undefined'||!hdr.camp&&!hdr.title&&!hdr.count&&!hdr.date){XLSX.writeFile(wb,name);return done()}
+  if(!hdr.logo||typeof JSZip==='undefined'||!hdr.camp&&!hdr.title&&!hdr.count&&!hdr.date){if(await xlsxOut(wb,name))done();return}
   try{
     const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
     const z=await JSZip.loadAsync(buf);
@@ -2753,8 +2800,8 @@ async function xlsxSave(wb,name,n,cols){
     ct=ct.replace('</Types>','<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>');
     z.file('[Content_Types].xml',ct,{createFolders:false});
     const blob=await z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'});
-    dlBlob(blob,name);done();
-  }catch(e){XLSX.writeFile(wb,name);notify('تم تصدير ملف Excel (بدون الشعار)',true)}
+    if(await saveOut(blob,name))done();
+  }catch(e){if(await xlsxOut(wb,name))notify('تم تصدير ملف Excel (بدون الشعار)',true)}
 }
 function exportXlsx(t){
   const key=tableKey(t);
@@ -2857,13 +2904,13 @@ function fcChange(){
 }
 function filtered(){
   const sts=fsSel(),gd=$('fGender').value,secs=fsecSel(),hs=fhSel(),op=$('fcOp').value,v1=parseInt($('fc1').value),v2=parseInt($('fc2').value);
-  return data.filter(d=>(!sts.length||sts.includes(baseOf(d.status)))&&(!gd||headGender(d)===gd)&&(!secs.length||(hasSector(d)&&secs.includes(d.sector)))&&(!hs.length||hs.includes(d.house))&&cmp(op,d.count,v1,v2)).sort(byName(famName));
+  return data.filter(d=>(!sts.length||sts.includes(baseOf(d.status)))&&(!gd||headGender(d)===gd)&&(!secs.length||(hasSector(d)&&secs.includes(d.sector))||(d.house==='خارجي'&&hs.includes('خارجي')))&&(!hs.length||hs.includes(d.house))&&cmp(op,d.count,v1,v2)).sort(byName(famName));
 }
 function renderList(){
   const rows=filtered();
   const sts=fsSel();
   const hsx=fhSel(),secx=fsecSel();
-  tTitle.fam='كشف العائلات'+(sts.length?' ('+sts.map(x=>ST_NAMES[x]).join(' + ')+')':'')+(hsx.length?' — '+hsx.map(x=>x==='خيمة'?'مخيم':x).join(' + '):'')+(secx.length?' — قاطع '+secx.join(' + '):'');
+  tTitle.fam='كشف العائلات'+(sts.length?' ('+sts.map(x=>ST_NAMES[x]).join(' + ')+')':'')+(hsx.length?' — '+hsx.map(x=>x==='خيمة'?'مخيم':x).join(' + '):'')+'';
   $('listTitle').textContent='عدد العائلات في الكشف: '+rows.length;
   hdrLine('pHeadList',tTitle.fam,rows.length);
   $('listTable').innerHTML=tblHTML('fam',rows);
@@ -3542,7 +3589,7 @@ function renderRep(){
     const ai=$('rgAid').value,a=ai?aids.find(x=>String(x.id)===ai):null;
     t='أفراد فئة ('+cd+') — '+(a?(a.name?'مشروع '+a.name:'مساعدة '+a.org)+' '+a.date:repDesc());
     $('repTitle').textContent=t+' — الإجمالي: '+all.length+' (استفاد: '+yes+'، لم يستفد: '+(all.length-yes)+')'+(rows.length!==all.length?' — المعروض: '+rows.length:'');
-    tTitle[key]=t+(sec?' - القاطع '+sec:'')+' (استفاد: '+yes+'، لم يستفد: '+(all.length-yes)+')';
+    tTitle[key]=t+' (استفاد: '+yes+'، لم يستفد: '+(all.length-yes)+')';
     hdrLine('pHeadRep',tTitle[key],rows.length);
     $('repTable').innerHTML=tblHTML(key,rows);
     return;
@@ -3552,10 +3599,10 @@ function renderRep(){
     rows.forEach(r=>{if(r.a.kind==='cash'||r.a.value){tot[r.a.cur]=(tot[r.a.cur]||0)+(+r.a.value||0)}});
     const sum=Object.keys(tot).map(c=>tot[c]+' '+c).join(' + ');
     const fams=new Set(rows.map(r=>r.f.id)).size;
-    t='العائلات المستفيدة من '+repDesc()+(sec?' - القاطع '+sec:'');
+    t='العائلات المستفيدة من '+repDesc();
     $('repTitle').textContent=t+' — عدد السجلات: '+rows.length+' (عائلات: '+fams+')'+(sum?' — الإجمالي: '+sum:'');
   }else{
-    t='العائلات غير المستفيدة من '+repDesc()+(sec?' - القاطع '+sec:'');
+    t='العائلات غير المستفيدة من '+repDesc();
     $('repTitle').textContent=t+' — عدد العائلات: '+rows.length;
   }
   tTitle[key]=t+'';
@@ -3644,7 +3691,7 @@ function downloadTemplate(){
   XLSX.utils.book_append_sheet(wb,kid,'الأبناء');
   XLSX.utils.book_append_sheet(wb,help,'تعليمات');
   wb.Workbook={Views:[{RTL:true}]};
-  XLSX.writeFile(wb,'قالب_الاستيراد.xlsx');
+  xlsxOut(wb,'قالب_الاستيراد.xlsx');
 }
 function xlPreview(){
   if(typeof XLSX==='undefined')return notify('مكتبة Excel غير متوفرة في هذه النسخة',false);
@@ -3742,10 +3789,7 @@ async function backupSave(){
       if(rec)atts.push({id:a.id,name:rec.name,mime:rec.mime,size:rec.size,data:await blobToDataURL(rec.blob)});
     }
     const obj={v:2,camp:CAMP,families:data,aids,aidCats:customCats,aidCatsRemoved:removedCats,diseases:allDis(),majors:allMaj('uni'),majorsDip:allMaj('dip'),sectors:SECTORS,attachments:atts};
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([JSON.stringify(obj)],{type:'application/json'}));
-    a.download='نسخة_العائلات_'+today()+'.json';a.click();
-    notify('تم حفظ النسخة الاحتياطية ✔ (اختر مكان الحفظ لو طلب منك)',true);
+    if(await saveOut(new Blob([JSON.stringify(obj)],{type:'application/json'}),'نسخة_العائلات.json'))notify('تم حفظ النسخة الاحتياطية ✔',true);
   }catch(e){notify('تعذّر إنشاء النسخة الاحتياطية',false)}
 }
 async function backupRestore(){
