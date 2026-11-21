@@ -14,7 +14,7 @@
 <title>برنامج تسجيل العائلات - مخيم فلسطين تل الهوا</title>
 <script>
 /* ===== رقم الإصدار + تحديث تلقائي (للجوال) ===== */
-var APP_VER='20-11';
+var APP_VER='21-11';
 async function appUpdate(){
   try{
     if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister()}
@@ -314,6 +314,7 @@ async function appUpdate(){
       <div><label id="hDobL">تاريخ ميلاد الزوج</label><input type="date" lang="en-GB" id="hDob"></div>
       <div style="grid-column:1/-1" id="pxH"></div>
     </div>
+    <div id="proofBox" class="hide" style="margin:6px 0"><label style="display:flex;gap:8px;align-items:center;font-weight:bold"><input type="checkbox" id="noProof"> ⚠️ الحالة بدون إثبات رسمي (مثلاً ما في ورقة محكمة بالهجر / الطلاق)</label></div>
     <div id="wifeBox" class="grid3">
       <div><label id="wNameL">اسم الزوجة الكامل</label><input type="text" id="wName"></div>
       <div><label id="wIdL">رقم هوية الزوجة</label><input type="text" id="wId" inputmode="numeric" maxlength="9"></div>
@@ -332,6 +333,8 @@ async function appUpdate(){
     <div class="kidsBox" id="kidsBoxAdd">
       <h3 id="kidsTitleAdd">👶 إضافة الأبناء</h3>
       <div class="countBadge">عدد أفراد الأسرة (تلقائي): <b id="countShow">0</b></div>
+      <label style="display:flex;gap:8px;align-items:center;margin:4px 0"><input type="checkbox" id="cntMan" onchange="cntManToggle()"> ✈️ بعض أفراد الأسرة غير موجودين (مسافرين) — أحدد العدد الفعلي بنفسي</label>
+      <div id="cntManBox" class="hide"><label>عدد الأفراد الموجودين فعلياً</label><input type="number" id="cntManV" min="1" max="40" style="max-width:120px"></div>
       <input type="hidden" id="count">
       <p class="sub" id="kidsHint"></p>
       <button class="btn gray" id="kidOpenBtn" style="margin-top:4px" onclick="openKidForm()">➕ إضافة ابن</button>
@@ -436,6 +439,12 @@ async function appUpdate(){
       <label><input type="checkbox" id="kIncM" checked onchange="renderKids()">👩 الأمهات (الزوجات)</label>
       <label><input type="checkbox" id="kIncF" checked onchange="renderKids()">👨 الآباء (الأزواج)</label>
     </div>
+    <div class="radios" style="margin-bottom:6px" id="kHouseBox"><b style="align-self:center">🏠 السكن:</b>
+      <label><input type="checkbox" class="kHs" value="خيمة" onchange="renderKids()">مخيم (داخلي)</label>
+      <label><input type="checkbox" class="kHs" value="مبنى" onchange="renderKids()">مبنى / برج</label>
+      <label><input type="checkbox" class="kHs" value="خارجي" onchange="renderKids()">خارجي</label>
+    </div>
+    <div class="radios" style="margin-bottom:10px" id="kSecBox"></div>
     <div class="row3">
       <div>
         <label>الجنس</label>
@@ -1231,6 +1240,7 @@ function casesList(f){
   if(orphans(f).length)o.push({c:'o',t:'أيتام'});
   if(f.cases.nurs)o.push({c:'n',t:'مرضعة'});
   if(f.cases.other)o.push({c:'x',t:f.cases.other});
+  if(f.noProof)o.push({c:'x',t:'بدون إثبات رسمي'});
   return o;
 }
 
@@ -1873,6 +1883,7 @@ function toggleBoxes(){
   $('genderHint').classList.toggle('hide',!needGender(b)||!!g);
   $('husbandBox').classList.toggle('hide',!hasHusband(st));
   $('wifeBox').classList.toggle('hide',!hasWife(st));
+  $('proofBox').classList.toggle('hide',!['a','d'].includes(b));
   $('hNameL').textContent=m?'اسم الزوج الكامل':'اسم رب الأسرة الكامل';
   $('hIdL').textContent=m?'رقم هوية الزوج':'رقم هوية رب الأسرة';
   $('hDobL').textContent=m?'تاريخ ميلاد الزوج':'تاريخ ميلاد رب الأسرة';
@@ -1917,14 +1928,24 @@ function buildAddExtras(){
   $('addCases').innerHTML=casesUI('',{dis:false,disNote:'',pris:false,nurs:false,other:''});
   $('addAtt').innerHTML=attBoxHTML('');
 }
+function cntFinal(){
+  const auto=parseInt($('count').value);
+  if(!$('cntMan')||!$('cntMan').checked)return auto;
+  const v=parseInt($('cntManV').value);
+  return v>=1&&v<=auto?v:auto;
+}
+function cntManToggle(){$('cntManBox').classList.toggle('hide',!$('cntMan').checked);if($('cntMan').checked&&!$('cntManV').value)$('cntManV').value=$('count').value}
 async function addFamily(){
+  if($('cntMan')&&$('cntMan').checked){const v=parseInt($('cntManV').value),auto=parseInt($('count').value);if(!(v>=1&&v<=auto))return notify('العدد الفعلي لازم يكون بين 1 و '+auto,false)}
   const st=addStatus(),hH=hasHusband(st),hW=hasWife(st);
   const cm=readCommon('');
   const f={
     id:newId(),status:st,
     hName:hH?cm.hName:'',hId:hH?cm.hId:'',hDob:hH?cm.hDob:'',
     wName:hW?cm.wName:'',wId:hW?cm.wId:'',wDob:hW?cm.wDob:'',
-    count:parseInt($('count').value),
+    count:cntFinal(),
+    noProof:!!($('noProof')&&$('noProof').checked&&['a','d'].includes(baseOf(st))),
+    hRef:($('swOn')&&$('swOn').checked&&window._swRef&&!hH)?window._swRef:null,
     mob1:cm.mob1,mob2:cm.mob2,payType:cm.payType,notes:cm.notes,
     house:cm.house,houseNote:cm.houseNote,tent:cm.tent,sector:cm.sector,cases:cm.cases,oldHouse:cm.oldHouse,sup:baseOf(st)==='s'?cm.sup:{},
     children:newKids.slice(),att:newAtt.map(a=>({...a})),
@@ -1942,6 +1963,7 @@ function resetAddForm(){
   document.querySelector('input[name=base][value=m]').checked=true;
   document.querySelectorAll('input[name=gender]').forEach(r=>r.checked=false);
   if($('swOn')){$('swOn').checked=false;swToggle();$('swQ').value=''}
+  window._swRef=null;if($('noProof'))$('noProof').checked=false;if($('cntMan')){$('cntMan').checked=false;cntManToggle();$('cntManV').value=''}
   newKids=[];newAtt.length=0;
   renderNewKids();closeKidForm();buildAddExtras();toggleBoxes();pxMountAdd();
 }
@@ -1957,21 +1979,31 @@ function swSearch(){
 }
 function swPick(id){
   const r=data.find(d=>d.id===id);if(!r)return;
-  document.querySelector('input[name=base][value=m]').checked=true;toggleBoxes();
-  $('hName').value=r.hName;$('hId').value=r.hId;$('hDob').value=r.hDob||'';
-  $('swRes').innerHTML='<p class="sub">✔ تم اختيار الزوج: <b>'+esc(r.hName)+'</b>. اكتب بيانات الزوجة الثانية تحت.</p>';
-  setTimeout(()=>{try{$('wName').focus()}catch(e){}},200);
+  window._swRef={name:r.hName,id:r.hId};window._swPickId=id;
+  $('swRes').innerHTML='<p class="sub">الزوج: <b>'+esc(r.hName)+'</b> ('+esc(r.hId)+'). كيف بدك تسجّل الزوجة؟</p><div class="acts"><button type="button" class="btn green" onclick="swApply(\'w\')">👩 باسمها كأسرة مستقلة (رب الأسرة = الزوجة)</button><button type="button" class="btn gray" onclick="swApply(\'h\')">💍 باسم الزوج (الأسرة باسمه)</button></div>';
+}
+function swApply(mode){
+  const r=data.find(d=>d.id===window._swPickId);if(!r)return;
+  if(mode==='h'){
+    document.querySelector('input[name=base][value=m]').checked=true;toggleBoxes();
+    $('hName').value=r.hName;$('hId').value=r.hId;$('hDob').value=r.hDob||'';
+    window._swRef=null;
+    $('swRes').innerHTML='<p class="sub">✔ تم اختيار الزوج: <b>'+esc(r.hName)+'</b>. اكتب بيانات الزوجة الثانية تحت.</p>';
+  }else{
+    document.querySelector('input[name=base][value=a]').checked=true;toggleBoxes();
+    const g=document.querySelector('input[name=gender][value="أنثى"]');if(g){g.checked=true;toggleBoxes()}
+    const t='زوجة ثانية/ثالثة للزوج: '+r.hName+' ('+r.hId+')';
+    if(!$('notes').value.includes(t))$('notes').value=($('notes').value?$('notes').value+'\n':'')+t;
+    $('swRes').innerHTML='<p class="sub">✔ بتتسجل الزوجة كأسرة مستقلة باسمها (حالة: مهجورة)، والزوج <b>'+esc(r.hName)+'</b> بيظهر كمرجع. اكتب بياناتها تحت. لو الحالة غير مثبتة بورقة علّم خانة "بدون إثبات رسمي". تقدر تغيّر الحالة من الخيارات.</p>';
+  }
+  setTimeout(()=>{try{($('wName').offsetParent?$('wName'):$('hName')).focus()}catch(e){}},200);
 }
 function addSecondWife(id){
   const r=data.find(d=>d.id===id);if(!r)return;
   show('add');resetAddForm();
   $('swOn').checked=true;swToggle();
-  $('hName').value=r.hName;$('hId').value=r.hId;$('hDob').value=r.hDob||'';
-  if($('hId').dispatchEvent)$('hId').dispatchEvent(new Event('input'));
-  const ho=document.querySelector('input[name=house][value="'+r.house+'"]');
+  swPick(id);
   window.scrollTo({top:0,behavior:'smooth'});
-  alert('تم تعبئة بيانات الزوج. اكتب بيانات الزوجة الثانية وأبناءها، ثم احفظ — تنحفظ كعائلة مستقلة بنفس هوية الزوج.');
-  setTimeout(()=>{try{$('wName').focus()}catch(e){}},300);
 }
 
 /* ================= عرض عائلة (بحث بالهوية) ================= */
@@ -2009,8 +2041,9 @@ function cardHTML(r){
       ${tag(r.status)} ${cl.map(c=>`<span class="cs ${c.c}">${esc(c.t)}</span>`).join('')}
       ${r.hName?`<div>${m?'الزوج':'رب الأسرة'}: <b>${esc(r.hName)}</b> (${esc(r.hId)}) — العمر: <b>${fmtAge(ageOf(r.hDob))}</b> — ميلاد: ${esc(r.hDob)||'-'}</div>${pxSumHTML(r.hx,r.hDob,true,'ذكر')}`:''}
       ${r.wName?`<div>${m?'الزوجة':'رب الأسرة'}: <b>${esc(r.wName)}</b> (${esc(r.wId)}) — العمر: <b>${fmtAge(ageOf(r.wDob))}</b> — ميلاد: ${esc(r.wDob)||'-'}</div>${pxSumHTML(r.wx,r.wDob,true,'أنثى')}`:''}
+      ${r.hRef?`<div style="color:#9c36b5">💍 زوجة ثانية/ثالثة للزوج: <b>${esc(r.hRef.name)}</b> (${esc(r.hRef.id)})</div>`:''}
       <div>السكن: <b>${esc(r.house)||'-'}</b>${r.house==='خيمة'?` — رقم الخيمة: <b>${esc(r.tent)}</b>`:''}${hasSector(r)?` — القاطع: <b>${esc(r.sector)}</b>`:''}${r.house==='خارجي'&&r.houseNote?` — ملاحظة السكن: <b>${esc(r.houseNote)}</b>`:''}</div>
-      ${(()=>{const o=r.hId?data.filter(d=>d.id!==r.id&&d.hId===r.hId):[];return o.length?`<div style="color:#9c36b5">👥 نفس الزوج مسجل في <b>${o.length+1}</b> عائلات (تعدد زوجات): ${o.map(d=>esc(d.wName||'-')).join('، ')}</div>`:''})()}
+      ${(()=>{const o=r.hId?data.filter(d=>d.id!==r.id&&(d.hId===r.hId||(d.hRef&&d.hRef.id===r.hId))):[];return o.length?`<div style="color:#9c36b5">👥 نفس الزوج مسجل في <b>${o.length+1}</b> عائلات (تعدد زوجات): ${o.map(d=>esc(d.wName||'-')).join('، ')}</div>`:''})()}
       ${r.oldHouse?`<div>السكن السابق: <b>${esc(r.oldHouse)}</b></div>`:''}
       ${baseOf(r.status)==='s'?`<div>الإعالة: <b>${esc(supTxt(r))}</b></div>`:''}
       <div>عدد الأفراد: <b>${r.count}</b> &nbsp;|&nbsp; الجوال: ${esc(r.mob1)}${r.mob2?' &nbsp;|&nbsp; '+esc(payStr(r)):''}</div>
@@ -2024,6 +2057,7 @@ function cardHTML(r){
       ${btn('edit','✏️ تعديل البيانات','green')}
       ${btn('newkid','👶 إضافة ابن (مولود جديد)','green')}
       ${r.hId&&r.hName?`<button class="btn green" onclick="addSecondWife(${r.id})">💍 إضافة زوجة ثانية / ثالثة</button>`:''}
+      ${btn('cnt','✈️ تعديل عدد الأفراد الفعلي','gray')}
       ${btn('note','📝 إضافة ملاحظة','gray')}
       ${r.status==='متزوج'?btn('spouse','👥 حذف أحد الزوجين','orange'):''}
       ${btn('delfam','🗑️ حذف الأسرة كاملة','red')}
@@ -2048,6 +2082,11 @@ function panelHTML(r,kind){
     <p class="sub">عدد الأفراد الحالي <b>${r.count}</b>، وبيصير <b>${r.count+1}</b> تلقائياً بعد الحفظ.</p>
     ${kidFields('nb')}
     <button class="btn green" onclick="addNewborn(${r.id})">✔ حفظ الابن (+1 للعدد)</button></div>`;
+  if(kind==='cnt')return `<div class="box"><h3>✈️ عدد الأفراد الموجودين فعلياً</h3>
+    <p class="sub">مثلاً الأسرة مسجلة 4 لكن الموجود فعلياً الزوج فقط: اكتب 1. التعديل بينكتب بملاحظات الأسرة.</p>
+    <label>عدد الأفراد الفعلي</label><input type="number" id="cn_${r.id}" min="1" max="40" value="${r.count}" style="max-width:120px">
+    <label>السبب (اختياري)</label><input type="text" id="cnr_${r.id}" maxlength="120" placeholder="مثال: الزوجة والأولاد مسافرين">
+    <button class="btn green" onclick="setCount(${r.id})">💾 حفظ العدد</button></div>`;
   if(kind==='note')return `<div class="box"><h3>📝 إضافة ملاحظة</h3>
     <p class="sub">بتنضاف الملاحظة مع التاريخ ولا بتمسح اللي قبلها.</p>
     <label>الملاحظة على</label>
@@ -2090,6 +2129,7 @@ function editPanel(){
     <div class="radios">${rb('m','متزوج/ة')}${rb('d','مطلق/ة')}${rb('w','أرمل/ة')}${rb('a','مهجورة')}${rb('s','أعزب / عزباء')}${rb('o','أيتام بدون أب وأم')}</div>
     ${!needGender(b)?'':`<div id="e_genderBox"><label>جنس رب الأسرة</label><div class="radios">${rg('ذكر')}${rg('أنثى')}</div></div>`}
     ${needGender(b)&&!st?'<p class="sub">اختر جنس رب الأسرة لتظهر خانات بياناته.</p>':''}
+    ${(b==='a'||b==='d')?`<label style="display:flex;gap:8px;align-items:center;font-weight:bold;margin:6px 0"><input type="checkbox" id="e_noProof" ${d.noProof?'checked':''}> ⚠️ الحالة بدون إثبات رسمي (ما في ورقة محكمة)</label>`:''}
     ${hasHusband(st)?person('h',d.hName,d.hId,d.hDob,m?'الزوج':'رب الأسرة'):''}
     ${hasWife(st)?person('w',d.wName,d.wId,d.wDob,m?'الزوجة':'رب الأسرة'):''}
     <div class="countBadge">عدد أفراد الأسرة (تلقائي): <b>${draftCount(d)}</b></div>
@@ -2115,6 +2155,7 @@ function editPanel(){
 function draftCount(d){return d._bc+(adultsOf(d.status)-d._ba)+(d.children.length-d._bk)}
 function syncDraft(){
   const d=ui.draft;if(!d||!$('e_mob1'))return;
+  d.noProof=!!($('e_noProof')&&$('e_noProof').checked);
   const b=radVal('e_base');if(b)d._base=b;
   const g=radVal('e_gender');if(g)d._gender=g;
   const cm=readCommon('e_');
@@ -2191,6 +2232,16 @@ function addQuickNote(id){
   notify('تم حفظ الملاحظة',true);
 }
 function toggleOth(id){$('oth_'+id).classList.toggle('hide',$('rs_'+id).value!=='other')}
+function setCount(id){
+  const r=data.find(d=>d.id===id);if(!r)return;
+  const n=parseInt($('cn_'+id).value);
+  if(!(n>=1&&n<=40))return notify('العدد لازم يكون بين 1 و 40',false);
+  const why=$('cnr_'+id).value.trim(),old=r.count;
+  if(n===old){ui.panel=null;renderById();return}
+  r.count=n;addNote(r,'تعديل عدد الأفراد يدوياً من '+old+' إلى '+n+(why?' - '+why:''));
+  save();ui.panel=null;ui.fam=null;$('idQ').value=headId(r);renderById();
+  notify('تم تعديل العدد إلى '+n,true);
+}
 async function addNewborn(id){
   const r=data.find(d=>d.id===id);if(!r)return;
   const x=readKid('nb');
@@ -2247,9 +2298,9 @@ const notesH=r=>`<div style="white-space:pre-line;text-align:right">${esc(r.note
 
 const FAMCOLS=[
  {k:'n',l:'#',v:(r,i)=>i+1,c:'num'},
- {k:'st',l:'الحالة',v:r=>r.status,h:r=>tag(r.status),x:r=>({fill:ST_FILL[r.status]})},
  {k:'hName',l:'اسم رب الأسرة',v:r=>famName(r),c:'nm'},
  {k:'hId',l:'رقم هوية رب الأسرة',v:r=>headId(r),c:'nw'},
+ {k:'st',l:'الحالة',v:r=>r.status,h:r=>tag(r.status),x:r=>({fill:ST_FILL[r.status]})},
  {k:'hAge',l:'عمر رب الأسرة',v:r=>fmtAge(ageOf(r.hName?r.hDob:r.wDob))},
  {k:'hDob',l:'تاريخ ميلاد رب الأسرة',v:r=>(r.hName?r.hDob:r.wDob)||'-',c:'nw'},
  {k:'wName',l:'اسم الزوجة',v:r=>r.status==='متزوج'?r.wName:'-',c:'nm'},
@@ -2957,11 +3008,26 @@ function kFillLists(){
   fill('kDis','كل الأمراض',allDis());
   fill('kLvl','الكل',uniqAr(STAGE_K.concat(STAGE_A,DEG_GRAD)));
 }
+const kHsSel=()=>[...document.querySelectorAll('.kHs:checked')].map(e=>e.value);
+const kSecSel=()=>[...document.querySelectorAll('.kSecChk:checked')].map(e=>e.value);
+function kSecRender(){
+  const box=$('kSecBox');if(!box)return;
+  const sig=SECTORS.join('|');
+  if(box.dataset.sig===sig)return;
+  const cur=kSecSel();box.dataset.sig=sig;
+  box.innerHTML='<b style="align-self:center">📍 القاطع:</b>'+SECTORS.map(x=>`<label><input type="checkbox" class="kSecChk" value="${esc(x)}" ${cur.includes(x)?'checked':''} onchange="renderKids()">${esc(x)}</label>`).join('');
+}
+function kFamOk(f,hs,secs){
+  if(hs.length&&!hs.includes(f.house))return false;
+  if(secs.length&&!((hasSector(f)&&secs.includes(f.sector))||(f.house==='خارجي'&&hs.includes('خارجي'))))return false;
+  return true;
+}
 function matchedKids(){
   const out=[];
   const incK=$('kIncK').checked,incM=$('kIncM').checked,incF=$('kIncF').checked;
-  const st=$('kStatus').value;
+  const st=$('kStatus').value,hs=kHsSel(),secs=kSecSel();
   data.forEach(f=>{
+    if(!kFamOk(f,hs,secs))return;
     if(incK)f.children.forEach(k=>{if(kidMatches(k))out.push({k,f,role:k.gender==='ذكر'?'ابن':'ابنة'})});
     if(st)return;
     const par=(role,gender,name,nid,dob)=>{
@@ -2974,12 +3040,12 @@ function matchedKids(){
   return out.sort(byName(x=>x.k.name));
 }
 function renderKids(){
-  kFillLists();
+  kFillLists();kSecRender();
   const rows=matchedKids();
   const m=rows.filter(x=>x.k.gender==='ذكر').length,fm=rows.length-m;
   const or=rows.filter(x=>x.role!=='الأب'&&x.role!=='الأم'&&x.k.status==='يتيم').length;
   const fams=new Set(rows.map(x=>x.f.id)).size;
-  tTitle.kid='كشف نتائج بحث الأفراد';
+  tTitle.kid='كشف نتائج بحث الأفراد'+(kHsSel().length?' — '+kHsSel().map(x=>x==='خيمة'?'مخيم':x==='مبنى'?'مبنى / برج':x).join(' + '):'');
   hdrLine('pHeadKids',tTitle.kid,rows.length);
   $('kidsTitle').textContent='عدد الأفراد: '+rows.length+' (ذكور: '+m+'، إناث: '+fm+'، أيتام: '+or+') من '+fams+' عائلة';
   $('kidsTable').innerHTML=tblHTML('kid',rows);
